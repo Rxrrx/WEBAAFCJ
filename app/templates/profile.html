@@ -59,6 +59,9 @@
         {% if item.category_name %}
         <span class="badge">{{ item.category_name }}</span>
         {% endif %}
+        {% if item.subcategory_name %}
+        <span class="badge badge--soft">{{ item.subcategory_name }}</span>
+        {% endif %}
       </div>
       <div class="history-card__actions">
         <a

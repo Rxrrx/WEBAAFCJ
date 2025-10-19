@@ -102,6 +102,9 @@
         {% if doc.category %}
         <span class="badge">{{ doc.category.name }}</span>
         {% endif %}
+        {% if doc.subcategory %}
+        <span class="badge badge--soft">{{ doc.subcategory.name }}</span>
+        {% endif %}
       </div>
       <div class="document-card__actions">
         <a
@@ -142,6 +145,106 @@
     Aún no hay documentos cargados. ¡Comparte el primero!
   </p>
   {% endif %}
+</section>
+
+<section class="module module--sermon">
+  <header class="module__header">
+    <div>
+      <h2>Sermón de la semana</h2>
+      <p>Accede al último mensaje publicado en la categoría {{ sermon_category_name }}.</p>
+    </div>
+  </header>
+  {% if sermon_document %}
+  <article class="sermon-card">
+    <div class="sermon-card__head">
+      <div class="sermon-card__tags">
+        <span class="badge">{{ sermon_document.category.name if sermon_document.category else sermon_category_name }}</span>
+        {% if sermon_document.subcategory %}
+        <span class="badge badge--soft">{{ sermon_document.subcategory.name }}</span>
+        {% endif %}
+      </div>
+      <time class="sermon-card__date" datetime="{{ sermon_document.uploaded_at.isoformat() }}">
+        Subido el {{ sermon_document.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
+      </time>
+    </div>
+    <h3 class="sermon-card__title">{{ sermon_document.filename }}</h3>
+    <p class="sermon-card__lead">
+      Comparte el mensaje pastoral de esta semana con todos los grupos y ministerios.
+    </p>
+    <div class="sermon-card__actions">
+      <a
+        class="button button--primary"
+        href="/documents/{{ sermon_document.id }}/download"
+        data-download-url="/documents/{{ sermon_document.id }}/download"
+        data-filename="{{ sermon_document.filename }}"
+      >
+        Descargar
+      </a>
+      {% if sermon_document.content_type == "application/pdf" %}
+      <a
+        class="button button--outline"
+        href="/documents/{{ sermon_document.id }}/view"
+        data-view-url="/documents/{{ sermon_document.id }}/view"
+        data-filename="{{ sermon_document.filename }}"
+      >
+        Ver en línea
+      </a>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}
+  <div class="empty-card">
+    <h3>Aún no se han compartido sermones</h3>
+    <p>
+      Sube un recurso a la categoría {{ sermon_category_name }} para destacarlo automáticamente en la portada.
+    </p>
+    {% if current_user and current_user.is_superuser %}
+    <a class="button button--primary" href="/admin/upload">Subir sermón</a>
+    {% else %}
+    <a class="button button--primary" href="/library">Explorar biblioteca</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="module module--map">
+  <header class="module__header">
+    <div>
+      <h2>Encuéntranos</h2>
+      <p>Visita nuestra congregación y comparte la comunión en {{ church_address }}.</p>
+    </div>
+  </header>
+  <div class="map-board" data-map-root>
+    <div
+      class="map-board__canvas"
+      data-map-placeholder
+      data-address="{{ church_address }}"
+    >
+      <p>
+        Aquí irá un mapa interactivo. Integra tu proveedor favorito (Mapbox, Google Maps,
+        OpenStreetMap, etc.) utilizando el atributo <code>data-address</code> para centrarlo.
+      </p>
+      <p class="map-board__address">
+        Dirección actual: <strong>{{ church_address }}</strong>
+      </p>
+    </div>
+    <aside class="map-board__details">
+      <h3>Planifica tu visita</h3>
+      <ul>
+        <li>Coordina con antelación actividades y reuniones ministeriales.</li>
+        <li>Comparte la ubicación con nuevos asistentes y grupos de amistad.</li>
+        <li>Actualiza este espacio cuando habilites la API de mapas.</li>
+      </ul>
+      <a
+        class="button button--ghost"
+        href="https://www.google.com/maps/search/?api=1&query={{ church_address | urlencode }}"
+        target="_blank"
+        rel="noopener"
+      >
+        Abrir en Google Maps
+      </a>
+    </aside>
+  </div>
 </section>
 
 {% if current_user and current_user.is_superuser %}

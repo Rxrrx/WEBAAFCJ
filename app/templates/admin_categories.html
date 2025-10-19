@@ -56,7 +56,7 @@
   <section class="admin-card admin-card--list">
     <header class="admin-card__header">
       <h2>Categorías existentes</h2>
-      <p>Gestiona o elimina categorías que ya no se utilicen.</p>
+      <p>Gestiona o elimina categorías y crea subcategorías específicas para cada ministerio.</p>
     </header>
 
     {% if categories %}
@@ -69,6 +69,54 @@
         <div class="category-chip__body">
           <h3>{{ category.name }}</h3>
           <p>Creada el {{ category.created_at.strftime("%d/%m/%Y") }}</p>
+          <p class="category-chip__meta">
+            {{ category.documents|length }} documento{{ 's' if category.documents|length != 1 }}
+          </p>
+          <div class="subcategory-board">
+            <h4>Subcategorías</h4>
+            {% set subcategories = category.subcategories|sort(attribute='name') %}
+            {% if subcategories %}
+            <ul class="subcategory-list">
+              {% for subcategory in subcategories %}
+              <li class="subcategory-item">
+                <span class="badge badge--soft">{{ subcategory.name }}</span>
+                <span class="subcategory-count">
+                  {{ subcategory.documents|length }} doc{{ 's' if subcategory.documents|length != 1 }}
+                </span>
+                <form
+                  class="action-inline-form"
+                  action="/admin/subcategories/{{ subcategory.id }}/delete"
+                  method="post"
+                  data-action="delete-subcategory"
+                  data-name="{{ subcategory.name }}"
+                >
+                  <button class="link-danger" type="submit" title="Eliminar subcategoría">
+                    Eliminar
+                  </button>
+                </form>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="subcategory-empty">Esta categoría aún no tiene subcategorías.</p>
+            {% endif %}
+            <form
+              class="subcategory-form"
+              action="/admin/categories/{{ category.id }}/subcategories"
+              method="post"
+            >
+              <label class="sr-only" for="subcategory-name-{{ category.id }}">Nueva subcategoría</label>
+              <input
+                class="form-input"
+                type="text"
+                id="subcategory-name-{{ category.id }}"
+                name="name"
+                placeholder="Ej. Nacer, Crecer, Jóvenes..."
+                required
+              />
+              <button class="button button--ghost" type="submit">Agregar</button>
+            </form>
+          </div>
         </div>
         <form
           class="action-inline-form"

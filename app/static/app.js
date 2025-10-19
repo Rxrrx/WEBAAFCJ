@@ -3,7 +3,7 @@
   const VIEW_SELECTOR = "[data-view-url]";
   const TOGGLE_SELECTOR = ".view-toggle";
   const DELETE_SELECTOR =
-    "form[data-action='delete-doc'], form[data-action='delete-category']";
+    "form[data-action='delete-doc'], form[data-action='delete-category'], form[data-action='delete-subcategory']";
 
   let modal;
   let iframe;
@@ -146,12 +146,15 @@
     root.querySelectorAll(DELETE_SELECTOR).forEach((form) => {
       form.addEventListener("submit", (event) => {
         const isCategory = form.dataset.action === "delete-category";
+        const isSubcategory = form.dataset.action === "delete-subcategory";
         const itemName =
           form.dataset.name || form.dataset.filename || "este elemento";
         const message =
           form.dataset.confirm ||
           (isCategory
             ? `Eliminar la categoria "${itemName}" y todos sus documentos asociados?`
+            : isSubcategory
+            ? `Eliminar la subcategoria "${itemName}" y todos sus documentos?`
             : `Eliminar "${itemName}" de manera permanente?`);
         if (!window.confirm(message)) {
           event.preventDefault();
@@ -271,11 +274,91 @@
     });
   }
 
+  function initCategorySubcategoryPicker(root = document) {
+    root.querySelectorAll("[data-category-select]").forEach((categorySelect) => {
+      const container = categorySelect.closest("form") || root;
+      const subcategorySelect = container.querySelector(
+        "[data-subcategory-select]"
+      );
+      if (!subcategorySelect) {
+        return;
+      }
+
+      let rawMap = [];
+      try {
+        rawMap = JSON.parse(categorySelect.dataset.categoryMap || "[]");
+      } catch (error) {
+        rawMap = [];
+      }
+
+      const lookup = new Map(
+        rawMap.map((item) => [
+          String(item.id),
+          Array.isArray(item.subcategories) ? item.subcategories : [],
+        ])
+      );
+
+      const setPlaceholder = (text) => {
+        subcategorySelect.innerHTML = "";
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = text;
+        option.selected = true;
+        subcategorySelect.appendChild(option);
+      };
+
+      const resetSelect = () => {
+        setPlaceholder("Selecciona una categoría primero");
+        subcategorySelect.disabled = true;
+      };
+
+      const populateSubcategories = (categoryId) => {
+        const items = lookup.get(String(categoryId)) || [];
+        if (!items.length) {
+          setPlaceholder("Sin subcategorías disponibles");
+          subcategorySelect.disabled = true;
+          return;
+        }
+
+        subcategorySelect.innerHTML = "";
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Sin subcategoría (opcional)";
+        placeholder.selected = true;
+        subcategorySelect.appendChild(placeholder);
+
+        items.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.id;
+          option.textContent = item.name;
+          subcategorySelect.appendChild(option);
+        });
+        subcategorySelect.disabled = false;
+      };
+
+      categorySelect.addEventListener("change", () => {
+        const value = categorySelect.value;
+        if (!value) {
+          resetSelect();
+          return;
+        }
+        populateSubcategories(value);
+      });
+
+      if (categorySelect.value) {
+        populateSubcategories(categorySelect.value);
+      } else {
+        resetSelect();
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     initDownloads();
     initViewers();
     initToggles();
     initDeletes();
     initChatbot();
+    initCategorySubcategoryPicker();
   });
 })();

@@ -7,6 +7,7 @@ from sqlalchemy import (
     Integer,
     LargeBinary,
     String,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -20,6 +21,26 @@ class Category(Base):
     name = Column(String(120), unique=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     documents = relationship("Document", back_populates="category")
+    subcategories = relationship(
+        "SubCategory",
+        back_populates="category",
+        cascade="all, delete-orphan",
+    )
+
+
+class SubCategory(Base):
+    __tablename__ = "subcategories"
+    __table_args__ = (
+        UniqueConstraint("category_id", "name", name="uq_subcategory_category_name"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(120), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+
+    category = relationship("Category", back_populates="subcategories")
+    documents = relationship("Document", back_populates="subcategory")
 
 
 class Document(Base):
@@ -31,7 +52,9 @@ class Document(Base):
     content = Column(LargeBinary, nullable=False)
     uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    subcategory_id = Column(Integer, ForeignKey("subcategories.id"), nullable=True)
     category = relationship("Category", back_populates="documents")
+    subcategory = relationship("SubCategory", back_populates="documents")
     downloads = relationship("DocumentDownload", back_populates="document")
 
 

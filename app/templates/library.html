@@ -3,6 +3,59 @@
 {% block title %}Biblioteca | Biblioteca Apostólica{% endblock %}
 {% block body_class %}page-library{% endblock %}
 
+{% macro document_card(doc, current_user) -%}
+<article class="document-card">
+  <div class="document-card__type" aria-hidden="true">
+    {{ "PDF" if doc.content_type == "application/pdf" else (doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type) }}
+  </div>
+  <div class="document-card__body">
+    <h3 class="document-card__title">{{ doc.filename }}</h3>
+    <p class="document-card__meta">
+      Publicado el {{ doc.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
+    </p>
+    <div class="document-card__tags">
+      {% if doc.category %}
+      <span class="badge">{{ doc.category.name }}</span>
+      {% endif %}
+      {% if doc.subcategory %}
+      <span class="badge badge--soft">{{ doc.subcategory.name }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="document-card__actions">
+    <a
+      class="button button--ghost"
+      href="/documents/{{ doc.id }}/download"
+      data-download-url="/documents/{{ doc.id }}/download"
+      data-filename="{{ doc.filename }}"
+    >
+      Descargar
+    </a>
+    {% if doc.content_type == "application/pdf" %}
+    <a
+      class="button button--outline"
+      href="/documents/{{ doc.id }}/view"
+      data-view-url="/documents/{{ doc.id }}/view"
+      data-filename="{{ doc.filename }}"
+    >
+      Abrir
+    </a>
+    {% endif %}
+    {% if current_user and current_user.is_superuser %}
+    <form
+      class="action-inline-form"
+      action="/documents/{{ doc.id }}/delete"
+      method="post"
+      data-action="delete-doc"
+      data-filename="{{ doc.filename }}"
+    >
+      <button class="link-danger" type="submit">Eliminar</button>
+    </form>
+    {% endif %}
+  </div>
+</article>
+{%- endmacro %}
+
 {% block masthead %}
 <section class="page-hero">
   <div class="page-hero__content">
@@ -20,68 +73,57 @@
 
 {% block content %}
 {% if category_groups %}
-{% for group in category_groups %}
-<section class="catalogue">
-  <header class="catalogue__header">
-    <div>
-      <h2>{{ group.category.name }}</h2>
-      <p>{{ group.documents|length }} documento{{ 's' if group.documents|length != 1 }}</p>
+  {% for group in category_groups %}
+  <section class="catalogue">
+    <header class="catalogue__header">
+      <div>
+        <h2>{{ group.category.name }}</h2>
+        <p>
+          {{ group.total_documents }} recurso{{ 's' if group.total_documents != 1 }}
+          {% if group.subcategories %}
+          &middot; {{ group.subcategories|length }} subcategoria{{ 's' if group.subcategories|length != 1 }}
+          {% endif %}
+        </p>
+      </div>
+      {% if current_user and current_user.is_superuser %}
+      <a class="link-arrow" href="/admin/upload">Agregar documentos</a>
+      {% endif %}
+    </header>
+
+    <div class="catalogue__body">
+      {% if group.documents %}
+      <div class="catalogue__section">
+        <h3 class="catalogue__section-title">Recursos generales</h3>
+        <div class="catalogue__grid">
+          {% for doc in group.documents %}
+          {{ document_card(doc, current_user) }}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if group.subcategories %}
+      <div class="subcategory-grid">
+        {% for bundle in group.subcategories %}
+        <section class="subcategory-block">
+          <header class="subcategory-block__header">
+            <h3>{{ bundle.subcategory.name }}</h3>
+            <span class="badge badge--soft">
+              {{ bundle.documents|length }} recurso{{ 's' if bundle.documents|length != 1 }}
+            </span>
+          </header>
+          <div class="catalogue__grid">
+            {% for doc in bundle.documents %}
+            {{ document_card(doc, current_user) }}
+            {% endfor %}
+          </div>
+        </section>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
-    {% if current_user and current_user.is_superuser %}
-    <a class="link-arrow" href="/admin/upload">Agregar documentos</a>
-    {% endif %}
-  </header>
-  <div class="catalogue__grid">
-    {% for doc in group.documents %}
-    <article class="document-card">
-      <div class="document-card__type" aria-hidden="true">
-        {{ "PDF" if doc.content_type == "application/pdf" else "DOC" }}
-      </div>
-      <div class="document-card__body">
-        <h3 class="document-card__title">{{ doc.filename }}</h3>
-        <p class="document-card__meta">
-          Publicado el {{ doc.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
-        </p>
-        <p class="document-card__meta document-card__meta--muted">
-          {{ doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type }}
-        </p>
-      </div>
-      <div class="document-card__actions">
-        <a
-          class="button button--ghost"
-          href="/documents/{{ doc.id }}/download"
-          data-download-url="/documents/{{ doc.id }}/download"
-          data-filename="{{ doc.filename }}"
-        >
-          Descargar
-        </a>
-        {% if doc.content_type == "application/pdf" %}
-        <a
-          class="button button--outline"
-          href="/documents/{{ doc.id }}/view"
-          data-view-url="/documents/{{ doc.id }}/view"
-          data-filename="{{ doc.filename }}"
-        >
-          Abrir
-        </a>
-        {% endif %}
-        {% if current_user and current_user.is_superuser %}
-        <form
-          class="action-inline-form"
-          action="/documents/{{ doc.id }}/delete"
-          method="post"
-          data-action="delete-doc"
-          data-filename="{{ doc.filename }}"
-        >
-          <button class="link-danger" type="submit">Eliminar</button>
-        </form>
-        {% endif %}
-      </div>
-    </article>
-    {% endfor %}
-  </div>
-</section>
-{% endfor %}
+  </section>
+  {% endfor %}
 {% endif %}
 
 {% if uncategorized_documents %}
@@ -89,56 +131,12 @@
   <header class="catalogue__header">
     <div>
       <h2>Sin categoría</h2>
-      <p>{{ uncategorized_documents|length }} documento{{ 's' if uncategorized_documents|length != 1 }}</p>
+      <p>{{ uncategorized_documents|length }} recurso{{ 's' if uncategorized_documents|length != 1 }}</p>
     </div>
   </header>
   <div class="catalogue__grid">
     {% for doc in uncategorized_documents %}
-    <article class="document-card">
-      <div class="document-card__type" aria-hidden="true">
-        {{ "PDF" if doc.content_type == "application/pdf" else "DOC" }}
-      </div>
-      <div class="document-card__body">
-        <h3 class="document-card__title">{{ doc.filename }}</h3>
-        <p class="document-card__meta">
-          Publicado el {{ doc.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
-        </p>
-        <p class="document-card__meta document-card__meta--muted">
-          {{ doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type }}
-        </p>
-      </div>
-      <div class="document-card__actions">
-        <a
-          class="button button--ghost"
-          href="/documents/{{ doc.id }}/download"
-          data-download-url="/documents/{{ doc.id }}/download"
-          data-filename="{{ doc.filename }}"
-        >
-          Descargar
-        </a>
-        {% if doc.content_type == "application/pdf" %}
-        <a
-          class="button button--outline"
-          href="/documents/{{ doc.id }}/view"
-          data-view-url="/documents/{{ doc.id }}/view"
-          data-filename="{{ doc.filename }}"
-        >
-          Abrir
-        </a>
-        {% endif %}
-        {% if current_user and current_user.is_superuser %}
-        <form
-          class="action-inline-form"
-          action="/documents/{{ doc.id }}/delete"
-          method="post"
-          data-action="delete-doc"
-          data-filename="{{ doc.filename }}"
-        >
-          <button class="link-danger" type="submit">Eliminar</button>
-        </form>
-        {% endif %}
-      </div>
-    </article>
+    {{ document_card(doc, current_user) }}
     {% endfor %}
   </div>
 </section>

@@ -38,12 +38,33 @@
     <form class="form-grid" action="/upload" method="post" enctype="multipart/form-data">
       <div class="form-field">
         <label class="form-label" for="category_id">Categoría</label>
-        <select class="form-input" id="category_id" name="category_id" required>
+        <select
+          class="form-input"
+          id="category_id"
+          name="category_id"
+          required
+          data-category-select
+          data-category-map='{{ category_options|tojson }}'
+        >
           <option value="" disabled selected>Selecciona una categoría</option>
           {% for category in categories %}
           <option value="{{ category.id }}">{{ category.name }}</option>
           {% endfor %}
         </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="subcategory_id">Subcategoría (opcional)</label>
+        <select
+          class="form-input"
+          id="subcategory_id"
+          name="subcategory_id"
+          data-subcategory-select
+          disabled
+        >
+          <option value="">Selecciona una subcategoría</option>
+        </select>
+        <p class="form-hint">Si la categoría tiene subcategorías, elige la que corresponda.</p>
       </div>
 
       <div class="form-field">
@@ -89,6 +110,9 @@
           </p>
           {% if doc.category %}
           <span class="badge">{{ doc.category.name }}</span>
+          {% endif %}
+          {% if doc.subcategory %}
+          <span class="badge badge--soft">{{ doc.subcategory.name }}</span>
           {% endif %}
         </div>
         <div class="document-card__actions">

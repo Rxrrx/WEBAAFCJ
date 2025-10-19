@@ -6,4 +6,9 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/code/data
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      APP_SESSION_SECRET: ${APP_SESSION_SECRET:-dev-secret-key-change-me}
+      CHURCH_ADDRESS: ${CHURCH_ADDRESS:-Navidad 2094, Pedro Aguirre Cerda}
+      SERMON_CATEGORY_NAME: ${SERMON_CATEGORY_NAME:-Sermones}
     restart: unless-stopped
