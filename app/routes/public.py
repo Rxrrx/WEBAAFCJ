@@ -52,6 +52,35 @@ async def read_home(
             .first()
         )
 
+    featured_categories = (
+        db.query(models.Category)
+        .options(selectinload(models.Category.subcategories))
+        .order_by(models.Category.display_order.asc(), models.Category.name.asc())
+        .limit(6)
+        .all()
+    )
+    featured_category_cards: List[Dict[str, object]] = []
+    for category in featured_categories:
+        document_count = (
+            db.query(models.Document)
+            .filter(models.Document.category_id == category.id)
+            .count()
+        )
+        subcategory_names = [
+            sub.name for sub in sorted(
+                category.subcategories,
+                key=lambda s: (s.display_order, s.name.lower()),
+            )
+        ]
+        featured_category_cards.append(
+            {
+                "id": category.id,
+                "name": category.name,
+                "documents": document_count,
+                "subcategories": subcategory_names,
+            }
+        )
+
     return templates.TemplateResponse(
         "index.html",
         template_context(
@@ -63,6 +92,8 @@ async def read_home(
             sermon_document=sermon_document,
             sermon_category_name=settings.sermon_category_name,
             church_address=settings.church_address,
+            mapbox_token=settings.mapbox_token,
+            featured_categories=featured_category_cards,
         ),
     )
 
@@ -89,24 +120,24 @@ async def library_view(
                 models.Document.subcategory
             ),
         )
-        .order_by(models.Category.name)
+        .order_by(models.Category.display_order.asc(), models.Category.name.asc())
         .all()
     )
     category_groups: List[Dict[str, object]] = []
     for category in categories:
         subcollections: List[Dict[str, object]] = []
         for subcategory in sorted(
-            category.subcategories, key=lambda s: s.name.lower()
+            category.subcategories,
+            key=lambda s: (s.display_order, s.name.lower()),
         ):
             docs = sorted(
                 subcategory.documents,
                 key=lambda d: d.uploaded_at,
                 reverse=True,
             )
-            if docs:
-                subcollections.append(
-                    {"subcategory": subcategory, "documents": docs}
-                )
+            subcollections.append(
+                {"subcategory": subcategory, "documents": docs}
+            )
         standalone_docs = sorted(
             [
                 document
@@ -116,18 +147,17 @@ async def library_view(
             key=lambda d: d.uploaded_at,
             reverse=True,
         )
-        if subcollections or standalone_docs:
-            total_docs = len(standalone_docs) + sum(
-                len(item["documents"]) for item in subcollections
-            )
-            category_groups.append(
-                {
-                    "category": category,
-                    "subcategories": subcollections,
-                    "documents": standalone_docs,
-                    "total_documents": total_docs,
-                }
-            )
+        total_docs = len(standalone_docs) + sum(
+            len(item["documents"]) for item in subcollections
+        )
+        category_groups.append(
+            {
+                "category": category,
+                "subcategories": subcollections,
+                "documents": standalone_docs,
+                "total_documents": total_docs,
+            }
+        )
 
     uncategorized = (
         db.query(models.Document)

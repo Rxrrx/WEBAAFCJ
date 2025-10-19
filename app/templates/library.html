@@ -3,8 +3,8 @@
 {% block title %}Biblioteca | Biblioteca Apostólica{% endblock %}
 {% block body_class %}page-library{% endblock %}
 
-{% macro document_card(doc, current_user) -%}
-<article class="document-card">
+{% macro document_card(doc, current_user, variant="default") -%}
+<article class="document-card{% if variant == 'compact' %} document-card--compact{% elif variant == 'row' %} document-card--row{% endif %}">
   <div class="document-card__type" aria-hidden="true">
     {{ "PDF" if doc.content_type == "application/pdf" else (doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type) }}
   </div>
@@ -57,13 +57,12 @@
 {%- endmacro %}
 
 {% block masthead %}
-<section class="page-hero">
+<section class="page-hero page-hero--library">
   <div class="page-hero__content">
-    <h1>Biblioteca por categorías</h1>
+    <h1>Biblioteca para aprender juntos</h1>
     <p>
-      Encuentra rápidamente los recursos de la Asamblea organizados por
-      ministerio y área de servicio, listos para descargar o visualizar en
-      línea.
+      Explora rutas de estudio, materiales devocionales y planificaciones para cada ministerio.
+      Usa el panel lateral para elegir la categoría que necesitas.
     </p>
   </div>
 </section>
@@ -73,79 +72,155 @@
 
 {% block content %}
 {% if category_groups %}
-  {% for group in category_groups %}
-  <section class="catalogue">
-    <header class="catalogue__header">
-      <div>
-        <h2>{{ group.category.name }}</h2>
-        <p>
-          {{ group.total_documents }} recurso{{ 's' if group.total_documents != 1 }}
-          {% if group.subcategories %}
-          &middot; {{ group.subcategories|length }} subcategoria{{ 's' if group.subcategories|length != 1 }}
-          {% endif %}
-        </p>
-      </div>
-      {% if current_user and current_user.is_superuser %}
-      <a class="link-arrow" href="/admin/upload">Agregar documentos</a>
-      {% endif %}
+<div class="library-shell" data-library-shell>
+  <aside class="library-sidebar">
+    <header class="library-sidebar__header">
+      <h2>Categorías</h2>
+      <p>Selecciona una categoría para revisar sus recursos.</p>
     </header>
+    <nav class="library-sidebar__nav" data-library-tabs role="tablist">
+      {% for group in category_groups %}
+      <button
+        class="library-tab{{ ' is-active' if loop.first }}"
+        type="button"
+        data-target="category-{{ group.category.id }}"
+        role="tab"
+        id="tab-category-{{ group.category.id }}"
+        aria-controls="category-{{ group.category.id }}"
+        aria-selected="{{ 'true' if loop.first else 'false' }}"
+      >
+        <span class="library-tab__name">{{ group.category.name }}</span>
+        <span class="library-tab__count">
+          {{ group.total_documents }} recurso{{ 's' if group.total_documents != 1 }}
+        </span>
+      </button>
+      {% endfor %}
+      {% if uncategorized_documents %}
+      <button
+        class="library-tab"
+        type="button"
+        data-target="category-uncategorized"
+        role="tab"
+        id="tab-category-uncategorized"
+        aria-controls="category-uncategorized"
+        aria-selected="false"
+      >
+        <span class="library-tab__name">Sin categoría</span>
+        <span class="library-tab__count">
+          {{ uncategorized_documents|length }} recurso{{ 's' if uncategorized_documents|length != 1 }}
+        </span>
+      </button>
+      {% endif %}
+    </nav>
+  </aside>
 
-    <div class="catalogue__body">
+  <section class="library-stage" data-library-stage>
+    {% for group in category_groups %}
+    <article
+      class="library-panel{{ ' is-active' if loop.first }}"
+      id="category-{{ group.category.id }}"
+      role="tabpanel"
+      aria-labelledby="tab-category-{{ group.category.id }}"
+      data-library-panel
+    >
+      <header class="library-panel__header">
+        <div>
+          <span class="library-panel__eyebrow">Categoría</span>
+          <h2>{{ group.category.name }}</h2>
+          <p>
+            {{ group.total_documents }} recurso{{ 's' if group.total_documents != 1 }}
+            {% if group.subcategories %}
+            · {{ group.subcategories|length }} subcategoría{{ 's' if group.subcategories|length != 1 }}
+            {% endif %}
+          </p>
+        </div>
+        {% if current_user and current_user.is_superuser %}
+        <a class="button button--soft" href="/admin/upload">Administrar documentos</a>
+        {% endif %}
+      </header>
+
       {% if group.documents %}
-      <div class="catalogue__section">
-        <h3 class="catalogue__section-title">Recursos generales</h3>
-        <div class="catalogue__grid">
+      <section class="library-panel__section">
+        <header class="library-panel__section-header">
+          <span class="library-panel__eyebrow">Colección general</span>
+          <h3>Material disponible para toda la congregación</h3>
+        </header>
+        <div class="library-document-list">
           {% for doc in group.documents %}
-          {{ document_card(doc, current_user) }}
+          {{ document_card(doc, current_user, "row") }}
           {% endfor %}
         </div>
-      </div>
+      </section>
       {% endif %}
 
       {% if group.subcategories %}
-      <div class="subcategory-grid">
-        {% for bundle in group.subcategories %}
-        <section class="subcategory-block">
-          <header class="subcategory-block__header">
-            <h3>{{ bundle.subcategory.name }}</h3>
-            <span class="badge badge--soft">
-              {{ bundle.documents|length }} recurso{{ 's' if bundle.documents|length != 1 }}
-            </span>
-          </header>
-          <div class="catalogue__grid">
-            {% for doc in bundle.documents %}
-            {{ document_card(doc, current_user) }}
-            {% endfor %}
-          </div>
-        </section>
-        {% endfor %}
-      </div>
+      <section class="library-panel__section library-panel__section--accordion">
+        <header class="library-panel__section-header">
+          <span class="library-panel__eyebrow">Subcategorías</span>
+          <h3>Recursos organizados por etapas de aprendizaje</h3>
+        </header>
+        <div class="library-accordion">
+          {% for bundle in group.subcategories %}
+          <details class="library-accordion__item" {% if loop.first %}open{% endif %}>
+            <summary class="library-accordion__summary">
+              <span class="library-accordion__name">{{ bundle.subcategory.name }}</span>
+              <span class="library-accordion__count">
+                {{ bundle.documents|length }} recurso{{ 's' if bundle.documents|length != 1 }}
+              </span>
+            </summary>
+            {% if bundle.documents %}
+            <div class="library-document-grid library-document-grid--compact">
+              {% for doc in bundle.documents %}
+              {{ document_card(doc, current_user, "compact") }}
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="library-panel__empty">
+              Todavía no hay recursos en esta subcategoría.
+            </p>
+            {% endif %}
+          </details>
+          {% endfor %}
+        </div>
+      </section>
       {% endif %}
-    </div>
-  </section>
-  {% endfor %}
-{% endif %}
 
-{% if uncategorized_documents %}
-<section class="catalogue catalogue--uncategorized">
-  <header class="catalogue__header">
-    <div>
-      <h2>Sin categoría</h2>
-      <p>{{ uncategorized_documents|length }} recurso{{ 's' if uncategorized_documents|length != 1 }}</p>
-    </div>
-  </header>
-  <div class="catalogue__grid">
+      {% if not group.documents and not group.subcategories %}
+      <p class="library-panel__empty">
+        Aún no se han incorporado recursos a esta categoría.
+      </p>
+      {% endif %}
+    </article>
+    {% endfor %}
+
+    {% if uncategorized_documents %}
+    <article
+      class="library-panel"
+      id="category-uncategorized"
+      role="tabpanel"
+      aria-labelledby="tab-category-uncategorized"
+      data-library-panel
+    >
+      <header class="library-panel__header">
+        <div>
+          <span class="library-panel__eyebrow">Colección</span>
+          <h2>Sin categoría</h2>
+          <p>{{ uncategorized_documents|length }} recurso{{ 's' if uncategorized_documents|length != 1 }}</p>
+        </div>
+      </header>
+  <div class="library-document-grid">
     {% for doc in uncategorized_documents %}
-    {{ document_card(doc, current_user) }}
+    {{ document_card(doc, current_user, "row") }}
     {% endfor %}
   </div>
-</section>
+</article>
 {% endif %}
-
-{% if not category_groups and not uncategorized_documents %}
+  </section>
+</div>
+{% else %}
 <p class="empty empty--center">
-  Todavía no hay documentos en la biblioteca. Comienza cargando materiales
-  desde el panel administrativo.
+  Todavía no hay documentos en la biblioteca. Comienza cargando materiales desde el
+  panel administrativo.
 </p>
 {% endif %}
 {% endblock %}

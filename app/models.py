@@ -19,6 +19,7 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(120), unique=True, nullable=False)
+    display_order = Column(Integer, default=0, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     documents = relationship("Document", back_populates="category")
     subcategories = relationship(
@@ -36,6 +37,7 @@ class SubCategory(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(120), nullable=False)
+    display_order = Column(Integer, default=0, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
 

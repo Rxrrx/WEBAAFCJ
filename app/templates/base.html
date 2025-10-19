@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{% block title %}Biblioteca Apostolica{% endblock %}</title>
+    <title>{% block title %}Biblioteca Apostólica{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,6 +12,8 @@
     />
     <link rel="stylesheet" href="/static/styles.css?v=2" />
     {% block extra_head %}{% endblock %}
+      <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    <script defer src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   </head>
   <body class="{% block body_class %}{% endblock %}">
     <div class="site-shell">
@@ -24,10 +26,18 @@
       <header class="site-header">
         <div class="site-header__brand">
           <a class="site-logo" href="/">
-            <span class="site-logo__crest" aria-hidden="true"></span>
+            <span class="site-logo__mark">
+              <img
+                class="site-logo__image"
+                src="/static/images/logo.svg"
+                alt="Logotipo Biblioteca Apostólica"
+              />
+              <span class="site-logo__crest" aria-hidden="true"></span>
+            </span>
             <span class="site-logo__text">
-              <span class="site-logo__title">Biblioteca Apostolica</span>
-              <span class="site-logo__subtitle">Fe en Cristo Jesus</span>
+              <span class="site-logo__title">Biblioteca Apostólica</span>
+              <span class="site-logo__subtitle">FE EN CRISTO JESÚS</span>
+              <span class="site-logo__footnote">Pedro Aguirre Cerda</span>
             </span>
           </a>
         </div>
@@ -52,7 +62,7 @@
             class="site-nav__link {{ 'is-active' if current_path.startswith('/admin') else '' }}"
             href="/admin/upload"
           >
-            Administracion
+            Administración
           </a>
           {% endif %}
           {% endif %}
@@ -68,7 +78,7 @@
             <button class="button button--ghost" type="submit">Salir</button>
           </form>
           {% else %}
-          <a class="button button--ghost" href="/login">Iniciar sesion</a>
+          <a class="button button--ghost" href="/login">Iniciar sesión</a>
           <a class="button button--primary" href="/register">Crear cuenta</a>
           {% endif %}
         </div>
@@ -91,19 +101,19 @@
         >
           <span class="chatbot__pulse" aria-hidden="true"></span>
           <span class="chatbot__icon" aria-hidden="true">?</span>
-          <span class="chatbot__trigger-label">Necesitas ayuda?</span>
+          <span class="chatbot__trigger-label">¿Necesitas ayuda?</span>
         </button>
         <div
           class="chatbot__panel"
           role="dialog"
-          aria-label="Asistente biblico"
+          aria-label="Asistente bíblico"
           hidden
           data-chatbot-panel
         >
           <header class="chatbot__header">
             <div>
-              <h2>Luz de Guia</h2>
-              <p>Asistente para preguntas sobre la Biblia y la fe evangelica.</p>
+              <h2>Luz de Guía</h2>
+              <p>Asistente para preguntas sobre la Biblia y la fe evangélica.</p>
             </div>
             <button
               class="chatbot__close"
@@ -116,8 +126,8 @@
           </header>
           <div class="chatbot__log" data-chatbot-log>
             <p class="chatbot__placeholder">
-              Hola, soy Luz de Guia. Pregunta lo que necesites sobre la Biblia
-              o la fe cristiana evangelica.
+              ¡Hola! Soy Luz de Guía. Pregunta lo que necesites sobre la Biblia
+              o la fe cristiana evangélica.
             </p>
           </div>
           <div class="chatbot__status" data-chatbot-status role="status" aria-live="polite"></div>
@@ -129,7 +139,7 @@
                 id="chatbot-input"
                 name="message"
                 type="text"
-                placeholder="Ej. Que ensena Juan 3:16?"
+                placeholder="Ej. ¿Qué enseña Juan 3:16?"
                 autocomplete="off"
                 data-chatbot-input
                 required
@@ -144,8 +154,8 @@
         <div class="site-footer__brand">
           <span class="site-footer__crest" aria-hidden="true"></span>
           <div>
-            <strong>Asamblea Apostolica de la Fe en Cristo Jesus</strong>
-            <p>Recursos y documentos para la comunidad.</p>
+            <strong>Asamblea Apostólica de la Fe en Cristo Jesús</strong>
+            <p>Recursos para fortalecer el aprendizaje bíblico de la iglesia.</p>
           </div>
         </div>
         <div class="site-footer__extras">

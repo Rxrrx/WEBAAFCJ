@@ -100,6 +100,9 @@ class Settings:
             ),
         )
     )
+    mapbox_token: Optional[str] = field(
+        default_factory=lambda: os.environ.get("MAPBOX_TOKEN")
+    )
 
     @property
     def gemini_api_key(self) -> Optional[str]:

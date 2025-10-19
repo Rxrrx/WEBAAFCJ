@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -37,7 +38,7 @@ async def admin_upload(
     categories = (
         db.query(models.Category)
         .options(selectinload(models.Category.subcategories))
-        .order_by(models.Category.name)
+        .order_by(models.Category.display_order.asc(), models.Category.name.asc())
         .all()
     )
     category_options = [
@@ -47,7 +48,8 @@ async def admin_upload(
             "subcategories": [
                 {"id": sub.id, "name": sub.name}
                 for sub in sorted(
-                    category.subcategories, key=lambda item: item.name.lower()
+                    category.subcategories,
+                    key=lambda item: (item.display_order, item.name.lower()),
                 )
             ],
         }
@@ -82,7 +84,7 @@ def _render_admin_categories(
             ),
             selectinload(models.Category.documents),
         )
-        .order_by(models.Category.name)
+        .order_by(models.Category.display_order.asc(), models.Category.name.asc())
         .all()
     )
     return templates.TemplateResponse(
@@ -137,7 +139,8 @@ async def admin_categories_create(
             request, db=db, current_user=current_user, errors=errors
         )
 
-    category = models.Category(name=cleaned)
+    max_order = db.query(func.max(models.Category.display_order)).scalar() or 0
+    category = models.Category(name=cleaned, display_order=max_order + 1)
     db.add(category)
     try:
         db.commit()
@@ -185,7 +188,17 @@ async def admin_subcategory_create(
             errors=["El nombre no puede estar vacío."],
         )
 
-    subcategory = models.SubCategory(name=cleaned, category_id=category.id)
+    max_order = (
+        db.query(func.max(models.SubCategory.display_order))
+        .filter(models.SubCategory.category_id == category.id)
+        .scalar()
+        or 0
+    )
+    subcategory = models.SubCategory(
+        name=cleaned,
+        category_id=category.id,
+        display_order=max_order + 1,
+    )
     db.add(subcategory)
     try:
         db.commit()
@@ -201,6 +214,108 @@ async def admin_subcategory_create(
     return redirect_response(
         f"{request.url_for('admin_categories_view')}?msg=Subcategoría%20creada"
     )
+
+
+@router.post("/admin/categories/{category_id}/move")
+async def admin_category_move(
+    request: Request,
+    category_id: int,
+    direction: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_superuser),
+):
+    category = (
+        db.query(models.Category)
+        .filter(models.Category.id == category_id)
+        .first()
+    )
+    if category is None:
+        return _render_admin_categories(
+            request,
+            db=db,
+            current_user=current_user,
+            errors=["La categoría solicitada no existe."],
+        )
+
+    normalized = (direction or "").lower()
+    if normalized not in {"up", "down"}:
+        raise HTTPException(status_code=400, detail="Dirección inválida para el orden.")
+
+    if normalized == "up":
+        neighbor = (
+            db.query(models.Category)
+            .filter(models.Category.display_order < category.display_order)
+            .order_by(models.Category.display_order.desc())
+            .first()
+        )
+    else:
+        neighbor = (
+            db.query(models.Category)
+            .filter(models.Category.display_order > category.display_order)
+            .order_by(models.Category.display_order.asc())
+            .first()
+        )
+
+    if neighbor:
+        category.display_order, neighbor.display_order = (
+            neighbor.display_order,
+            category.display_order,
+        )
+        db.commit()
+
+    return redirect_response(request.url_for("admin_categories_view"))
+
+
+@router.post("/admin/subcategories/{subcategory_id}/move")
+async def admin_subcategory_move(
+    request: Request,
+    subcategory_id: int,
+    direction: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_superuser),
+):
+    subcategory = (
+        db.query(models.SubCategory)
+        .filter(models.SubCategory.id == subcategory_id)
+        .first()
+    )
+    if subcategory is None:
+        return _render_admin_categories(
+            request,
+            db=db,
+            current_user=current_user,
+            errors=["La subcategoría solicitada no existe."],
+        )
+
+    normalized = (direction or "").lower()
+    if normalized not in {"up", "down"}:
+        raise HTTPException(status_code=400, detail="Dirección inválida para el orden.")
+
+    query = db.query(models.SubCategory).filter(
+        models.SubCategory.category_id == subcategory.category_id
+    )
+
+    if normalized == "up":
+        neighbor = (
+            query.filter(models.SubCategory.display_order < subcategory.display_order)
+            .order_by(models.SubCategory.display_order.desc())
+            .first()
+        )
+    else:
+        neighbor = (
+            query.filter(models.SubCategory.display_order > subcategory.display_order)
+            .order_by(models.SubCategory.display_order.asc())
+            .first()
+        )
+
+    if neighbor:
+        subcategory.display_order, neighbor.display_order = (
+            neighbor.display_order,
+            subcategory.display_order,
+        )
+        db.commit()
+
+    return redirect_response(request.url_for("admin_categories_view"))
 
 
 @router.post("/admin/categories/{category_id}/delete")

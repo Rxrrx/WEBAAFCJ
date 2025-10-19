@@ -62,19 +62,42 @@
     {% if categories %}
     <ul class="category-deck">
       {% for category in categories %}
+      {% set subcategories = category.subcategories | sort(attribute='display_order') %}
       <li class="category-chip">
         <div class="category-chip__badge" aria-hidden="true">
           {{ category.name[0] }}
         </div>
         <div class="category-chip__body">
-          <h3>{{ category.name }}</h3>
-          <p>Creada el {{ category.created_at.strftime("%d/%m/%Y") }}</p>
-          <p class="category-chip__meta">
-            {{ category.documents|length }} documento{{ 's' if category.documents|length != 1 }}
-          </p>
+          <header class="category-chip__header">
+            <div>
+              <h3>{{ category.name }}</h3>
+              <p>Creada el {{ category.created_at.strftime("%d/%m/%Y") }}</p>
+              <p class="category-chip__meta">
+                {{ category.documents|length }} documento{{ 's' if category.documents|length != 1 }}
+              </p>
+            </div>
+            <div class="category-chip__controls">
+              <form action="/admin/categories/{{ category.id }}/move" method="post">
+                <input type="hidden" name="direction" value="up" />
+                <button class="order-button" type="submit" title="Mover hacia arriba" aria-label="Mover categoría {{ category.name }} hacia arriba">▲</button>
+              </form>
+              <form action="/admin/categories/{{ category.id }}/move" method="post">
+                <input type="hidden" name="direction" value="down" />
+                <button class="order-button" type="submit" title="Mover hacia abajo" aria-label="Mover categoría {{ category.name }} hacia abajo">▼</button>
+              </form>
+              <form
+                class="action-inline-form"
+                action="/admin/categories/{{ category.id }}/delete"
+                method="post"
+                data-action="delete-category"
+                data-name="{{ category.name }}"
+              >
+                <button class="link-danger" type="submit">Eliminar</button>
+              </form>
+            </div>
+          </header>
           <div class="subcategory-board">
             <h4>Subcategorías</h4>
-            {% set subcategories = category.subcategories|sort(attribute='name') %}
             {% if subcategories %}
             <ul class="subcategory-list">
               {% for subcategory in subcategories %}
@@ -83,17 +106,27 @@
                 <span class="subcategory-count">
                   {{ subcategory.documents|length }} doc{{ 's' if subcategory.documents|length != 1 }}
                 </span>
-                <form
-                  class="action-inline-form"
-                  action="/admin/subcategories/{{ subcategory.id }}/delete"
-                  method="post"
-                  data-action="delete-subcategory"
-                  data-name="{{ subcategory.name }}"
-                >
-                  <button class="link-danger" type="submit" title="Eliminar subcategoría">
-                    Eliminar
-                  </button>
-                </form>
+                <div class="subcategory-item__controls">
+                  <form action="/admin/subcategories/{{ subcategory.id }}/move" method="post">
+                    <input type="hidden" name="direction" value="up" />
+                    <button class="order-button" type="submit" title="Mover subcategoría hacia arriba" aria-label="Mover subcategoría {{ subcategory.name }} hacia arriba">▲</button>
+                  </form>
+                  <form action="/admin/subcategories/{{ subcategory.id }}/move" method="post">
+                    <input type="hidden" name="direction" value="down" />
+                    <button class="order-button" type="submit" title="Mover subcategoría hacia abajo" aria-label="Mover subcategoría {{ subcategory.name }} hacia abajo">▼</button>
+                  </form>
+                  <form
+                    class="action-inline-form"
+                    action="/admin/subcategories/{{ subcategory.id }}/delete"
+                    method="post"
+                    data-action="delete-subcategory"
+                    data-name="{{ subcategory.name }}"
+                  >
+                    <button class="link-danger" type="submit" title="Eliminar subcategoría">
+                      Eliminar
+                    </button>
+                  </form>
+                </div>
               </li>
               {% endfor %}
             </ul>
@@ -118,15 +151,6 @@
             </form>
           </div>
         </div>
-        <form
-          class="action-inline-form"
-          action="/admin/categories/{{ category.id }}/delete"
-          method="post"
-          data-action="delete-category"
-          data-name="{{ category.name }}"
-        >
-          <button class="link-danger" type="submit">Eliminar</button>
-        </form>
       </li>
       {% endfor %}
     </ul>

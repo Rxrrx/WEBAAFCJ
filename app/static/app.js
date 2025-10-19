@@ -175,6 +175,102 @@
     return value.replace(/[&<>"']/g, (char) => HTML_ESCAPE[char] || char);
   }
 
+  function formatInlineMarkdown(value) {
+    let html = value;
+    html = html.replace(/!\[([^\]]*?)\]\((.*?)\)/g, "$1"); // Ignora imágenes.
+    html = html.replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener">$1</a>'
+    );
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/__(.+?)__/g, "<strong>$1</strong>");
+    html = html.replace(
+      /(^|[^*])\*(?!\*)([^*]+?)\*(?!\*)([^*]|$)/g,
+      (match, before, content, after) => `${before}<em>${content}</em>${after}`
+    );
+    html = html.replace(
+      /(^|[^_])_(?!_)([^_]+?)_(?!_)([^_]|$)/g,
+      (match, before, content, after) => `${before}<em>${content}</em>${after}`
+    );
+    return html;
+  }
+
+  function renderMarkdownSafe(text) {
+    const escaped = escapeHtml(text);
+    const lines = escaped.split(/\r?\n/);
+    const rendered = [];
+    let listType = null;
+    let paragraphBuffer = [];
+
+    const flushList = () => {
+      if (!listType) return;
+      rendered.push(listType === "ol" ? "</ol>" : "</ul>");
+      listType = null;
+    };
+
+    const ensureList = (type) => {
+      if (listType === type) {
+        return;
+      }
+      flushList();
+      const tag =
+        type === "ol"
+          ? '<ol class="chatbot__list chatbot__list--ordered">'
+          : '<ul class="chatbot__list">';
+      rendered.push(tag);
+      listType = type;
+    };
+
+    const flushParagraph = () => {
+      if (!paragraphBuffer.length) return;
+      rendered.push(
+        `<p class="chatbot__paragraph">${formatInlineMarkdown(
+          paragraphBuffer.join(" ")
+        )}</p>`
+      );
+      paragraphBuffer = [];
+    };
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      const bulletMatch = trimmed.match(/^[-*]\s+(.*)$/);
+      const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+
+      if (bulletMatch) {
+        flushParagraph();
+        ensureList("ul");
+        rendered.push(`<li>${formatInlineMarkdown(bulletMatch[1])}</li>`);
+        return;
+      }
+
+      if (orderedMatch) {
+        flushParagraph();
+        ensureList("ol");
+        rendered.push(`<li>${formatInlineMarkdown(orderedMatch[1])}</li>`);
+        return;
+      }
+
+      flushList();
+
+      if (!trimmed) {
+        flushParagraph();
+        return;
+      }
+
+      paragraphBuffer.push(trimmed);
+    });
+
+    flushParagraph();
+    flushList();
+
+    const html = rendered.join("").trim();
+    if (html) {
+      return html;
+    }
+    return '<p class="chatbot__paragraph"></p>';
+  }
+
   function initChatbot() {
     const root = document.querySelector("[data-chatbot]");
     if (!root) return;
@@ -211,7 +307,7 @@
       }
       const bubble = document.createElement("div");
       bubble.className = `chatbot__bubble chatbot__bubble--${variant}`;
-      bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br />");
+      bubble.innerHTML = renderMarkdownSafe(text);
       log.appendChild(bubble);
       log.scrollTop = log.scrollHeight;
       return bubble;
@@ -353,6 +449,177 @@
     });
   }
 
+  function initLibraryNavigator(root = document) {
+    const shell = root.querySelector("[data-library-shell]");
+    if (!shell) return;
+
+    const tablist = shell.querySelector("[data-library-tabs]");
+    const stage = shell.querySelector("[data-library-stage]");
+    if (!tablist || !stage) return;
+
+    const tabs = Array.from(tablist.querySelectorAll(".library-tab"));
+    const panels = Array.from(stage.querySelectorAll("[data-library-panel]"));
+    if (!tabs.length || !panels.length) return;
+
+    const findPanel = (id) => panels.find((panel) => panel.id === id);
+
+    const activate = (id, focusTab = false) => {
+      const panel = findPanel(id);
+      if (!panel) return;
+
+      tabs.forEach((tab) => {
+        const isActive = tab.dataset.target === id;
+        tab.classList.toggle("is-active", isActive);
+        tab.setAttribute("aria-selected", String(isActive));
+        tab.setAttribute("tabindex", isActive ? "0" : "-1");
+        if (isActive && focusTab) {
+          tab.focus({ preventScroll: true });
+        }
+      });
+
+      panels.forEach((item) => {
+        const isActive = item === panel;
+        item.classList.toggle("is-active", isActive);
+        item.toggleAttribute("hidden", !isActive);
+      });
+    };
+
+    const initialHash = window.location.hash ? window.location.hash.slice(1) : null;
+    const preferredId = initialHash && findPanel(initialHash) ? initialHash : tabs[0].dataset.target;
+
+    shell.setAttribute("data-enhanced", "true");
+    panels.forEach((panel) => {
+      if (!panel.classList.contains("is-active")) {
+        panel.setAttribute("hidden", "hidden");
+      }
+    });
+    activate(preferredId);
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const target = tab.dataset.target;
+        activate(target, true);
+        if (target) {
+          history.replaceState(null, "", `#${target}`);
+        }
+      });
+    });
+
+    window.addEventListener("hashchange", () => {
+      const hashId = window.location.hash ? window.location.hash.slice(1) : null;
+      if (!hashId) return;
+      if (findPanel(hashId)) {
+        activate(hashId);
+      }
+    });
+  }
+
+
+  function initMap(root = document) {
+    const mapRoot = root.querySelector("[data-map-placeholder]");
+    if (!mapRoot) return;
+
+    const token = mapRoot.dataset.mapToken;
+    if (!token || typeof mapboxgl === "undefined") {
+      console.warn("Mapbox no está disponible o falta MAPBOX_TOKEN");
+      return;
+    }
+
+    mapboxgl.accessToken = token;
+    const map = new mapboxgl.Map({
+      container: mapRoot,
+      style: "mapbox://styles/mapbox/streets-v11",
+      center: [ -70.6693, -33.4569 ],
+      zoom: 13,
+    });
+
+    const geocoder = new mapboxgl.Geocoder || null;
+    const address = mapRoot.dataset.address;
+    if (address && mapboxgl.Geocoder) {
+      const geocoder = new MapboxGeocoder({
+        accessToken: token,
+        mapboxgl,
+        placeholder: address,
+      });
+      geocoder.on("result", (event) => {
+        const [lng, lat] = event.result.center;
+        new mapboxgl.Marker().setLngLat([lng, lat]).addTo(map);
+        map.flyTo({ center: [lng, lat], zoom: 15 });
+      });
+      map.addControl(geocoder);
+      geocoder.query(address);
+    } else if (address) {
+      fetch()
+        .then((response) => response.json())
+        .then((data) => {
+          const [lng, lat] = data.features[0].center;
+          map.setCenter([lng, lat]);
+          new mapboxgl.Marker().setLngLat([lng, lat]).addTo(map);
+        })
+        .catch((error) => console.error("No se pudo geocodificar la dirección", error));
+    }
+  }
+  function initMap(root = document) {
+    const mapRoot = root.querySelector("[data-map-placeholder]");
+    if (!mapRoot) return;
+
+    const token = mapRoot.dataset.mapToken;
+    if (!token || typeof mapboxgl === "undefined") {
+      console.warn("Mapbox no está disponible o falta MAPBOX_TOKEN");
+      return;
+    }
+
+    mapboxgl.accessToken = token;
+    const map = new mapboxgl.Map({
+      container: mapRoot,
+      style: "mapbox://styles/mapbox/streets-v11",
+      center: [-70.6693, -33.4569],
+      zoom: 13,
+    });
+
+    const address = mapRoot.dataset.address;
+    if (address) {
+      fetch(
+        "https://api.mapbox.com/geocoding/v5/mapbox.places/" +
+          encodeURIComponent(address) +
+          ".json?access_token=" +
+          token
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          const feature = data.features && data.features[0];
+          if (!feature) return;
+          const [lng, lat] = feature.center;
+          map.setCenter([lng, lat]);
+          map.setZoom(14);
+          new mapboxgl.Marker().setLngLat([lng, lat]).addTo(map);
+        })
+        .catch((error) => {
+          console.error("No se pudo geocodificar la dirección", error);
+        });
+    }
+
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }));
+  }
+
+  function initLogoMark(root = document) {
+    const mark = root.querySelector(".site-logo__mark");
+    const image = mark?.querySelector(".site-logo__image");
+    if (!mark || !image) return;
+
+    const showIfLoaded = () => {
+      if (image.complete && image.naturalWidth > 0) {
+        mark.classList.add("has-image");
+      }
+    };
+
+    image.addEventListener("load", showIfLoaded);
+    image.addEventListener("error", () => {
+      mark.classList.remove("has-image");
+    });
+    showIfLoaded();
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     initDownloads();
     initViewers();
@@ -360,5 +627,8 @@
     initDeletes();
     initChatbot();
     initCategorySubcategoryPicker();
+    initLibraryNavigator();
+    initLogoMark();
+    initMap();
   });
 })();

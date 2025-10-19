@@ -17,21 +17,45 @@ def _ensure_table_columns() -> None:
     backend = engine.url.get_backend_name()
     with engine.begin() as connection:
         if backend == "sqlite":
-            columns = [
+            document_columns = [
                 row[1]
                 for row in connection.exec_driver_sql(
                     "PRAGMA table_info(documents)"
                 )
             ]
-            if "category_id" not in columns:
+            if "category_id" not in document_columns:
                 connection.exec_driver_sql(
                     "ALTER TABLE documents "
                     "ADD COLUMN category_id INTEGER REFERENCES categories(id)"
                 )
-            if "subcategory_id" not in columns:
+            if "subcategory_id" not in document_columns:
                 connection.exec_driver_sql(
                     "ALTER TABLE documents "
                     "ADD COLUMN subcategory_id INTEGER REFERENCES subcategories(id)"
+                )
+
+            category_columns = [
+                row[1]
+                for row in connection.exec_driver_sql(
+                    "PRAGMA table_info(categories)"
+                )
+            ]
+            if "display_order" not in category_columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE categories "
+                    "ADD COLUMN display_order INTEGER DEFAULT 0 NOT NULL"
+                )
+
+            subcategory_columns = [
+                row[1]
+                for row in connection.exec_driver_sql(
+                    "PRAGMA table_info(subcategories)"
+                )
+            ]
+            if "display_order" not in subcategory_columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE subcategories "
+                    "ADD COLUMN display_order INTEGER DEFAULT 0 NOT NULL"
                 )
         else:
             connection.exec_driver_sql(
@@ -42,6 +66,24 @@ def _ensure_table_columns() -> None:
                 "ALTER TABLE documents "
                 "ADD COLUMN IF NOT EXISTS subcategory_id INTEGER REFERENCES subcategories(id)"
             )
+            connection.exec_driver_sql(
+                "ALTER TABLE categories "
+                "ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0 NOT NULL"
+            )
+            connection.exec_driver_sql(
+                "ALTER TABLE subcategories "
+                "ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0 NOT NULL"
+            )
+
+        # Normaliza valores de orden cuando el campo es nuevo o está sin asignar.
+        connection.exec_driver_sql(
+            "UPDATE categories SET display_order = id "
+            "WHERE display_order IS NULL OR display_order = 0"
+        )
+        connection.exec_driver_sql(
+            "UPDATE subcategories SET display_order = id "
+            "WHERE display_order IS NULL OR display_order = 0"
+        )
 
 
 def ensure_default_superuser(settings: Optional[Settings] = None) -> None:

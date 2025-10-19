@@ -5,37 +5,85 @@
 
 {% block masthead %}
 <section class="hero hero--home">
-  <div class="hero__badge">Apostolic Assembly of the Faith in Christ Jesus</div>
+  <div class="hero__legend">
+    <span class="hero__badge">
+      <span>Asamblea Apostólica de la Fe en Cristo Jesús</span>
+      <span class="hero__badge-divider" aria-hidden="true">·</span>
+      <span>Pedro Aguirre Cerda</span>
+    </span>
+  </div>
   <div class="hero__inner">
     <div class="hero__content">
       <h1>Biblioteca Apostólica</h1>
       <p>
-        Custodia y comparte los recursos de tu congregación desde un espacio
-        seguro, moderno y alineado a nuestra identidad.
+        Fortalece el aprendizaje bíblico de cada ministerio con una biblioteca ordenada, segura
+        y disponible para guías, maestros y equipos de servicio.
       </p>
       <div class="hero__actions">
         <a class="button button--primary" href="/library">Explorar biblioteca</a>
         {% if current_user %}
         {% if current_user.is_superuser %}
         <a class="button button--outline" href="/admin/upload">Panel de administración</a>
+        {% else %}
+        <a class="button button--ghost" href="/profile">Ver mi historial</a>
         {% endif %}
         {% else %}
-        <a class="button button--ghost" href="/register">Únete a la comunidad</a>
+        <a class="button button--ghost" href="/register">Solicitar acceso</a>
         {% endif %}
       </div>
     </div>
     <div class="hero__media">
-      <div class="hero-card">
-        <h3 class="hero-card__title">Organiza. Comparte. Inspira.</h3>
+      {% if sermon_document %}
+      <article class="sermon-card sermon-card--hero">
+        <div class="sermon-card__head">
+          <div class="sermon-card__tags">
+            <span class="badge">{{ sermon_document.category.name if sermon_document.category else sermon_category_name }}</span>
+            {% if sermon_document.subcategory %}
+            <span class="badge badge--soft">{{ sermon_document.subcategory.name }}</span>
+            {% endif %}
+          </div>
+          <time class="sermon-card__date" datetime="{{ sermon_document.uploaded_at.isoformat() }}">
+            Publicado el {{ sermon_document.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
+          </time>
+        </div>
+        <h3 class="sermon-card__title">Sermón de la semana</h3>
+        <p class="sermon-card__lead">
+          {{ sermon_document.filename }}
+        </p>
+        <div class="sermon-card__actions">
+          <a
+            class="button button--primary"
+            href="/documents/{{ sermon_document.id }}/download"
+            data-download-url="/documents/{{ sermon_document.id }}/download"
+            data-filename="{{ sermon_document.filename }}"
+          >
+            Descargar
+          </a>
+          {% if sermon_document.content_type == "application/pdf" %}
+          <a
+            class="button button--outline"
+            href="/documents/{{ sermon_document.id }}/view"
+            data-view-url="/documents/{{ sermon_document.id }}/view"
+            data-filename="{{ sermon_document.filename }}"
+          >
+            Ver en línea
+          </a>
+          {% endif %}
+        </div>
+      </article>
+      {% else %}
+      <div class="hero-card hero-card--placeholder">
+        <h3 class="hero-card__title">Organiza tus estudios semanales</h3>
         <p class="hero-card__caption">
-          Centraliza estudios bíblicos, planificaciones, boletines y más.
+          Destaca aquí el último mensaje cargado en la categoría {{ sermon_category_name }}.
         </p>
         <ul class="hero-card__list">
-          <li>Compatibilidad con PDF, Word, PowerPoint y texto</li>
-          <li>Categorización por ministerios y áreas de servicio</li>
-          <li>Acceso rápido y seguimiento de descargas</li>
+          <li>Guarda bosquejos, hojas de trabajo y devocionales.</li>
+          <li>Actualiza el recurso semanal desde el panel administrativo.</li>
+          <li>Facilita el repaso para grupos familiares y liderazgo juvenil.</li>
         </ul>
       </div>
+      {% endif %}
     </div>
   </div>
 </section>
@@ -46,33 +94,29 @@
 {% block content %}
 <section class="module module--intro">
   <div class="module__headline">
-    <h2>Tu biblioteca digital al servicio de la iglesia</h2>
+    <h2>Material de formación al alcance de la iglesia</h2>
     <p>
-      Conecta a líderes, miembros y voluntarios con materiales actualizados
-      desde cualquier dispositivo. Mantén la unidad con un sistema de gestión
-      sencillo y fiel a los colores de nuestra Asamblea.
+      Conecta a maestros, líderes y estudiantes con recursos actualizados, ordenados por rutas de
+      aprendizaje y listos para descargar en cualquier momento.
     </p>
   </div>
   <div class="pillars">
     <article class="pillar">
-      <h3>Categorías claras</h3>
+      <h3>Rutas guiadas</h3>
       <p>
-        Mantén cada documento etiquetado por ministerio, jornada o evento para
-        encontrarlo en segundos.
+        Cada categoría refleja un ministerio o etapa, para que los estudios sigan un progreso claro.
       </p>
     </article>
     <article class="pillar">
-      <h3>Visor integrado</h3>
+      <h3>Material listo para enseñar</h3>
       <p>
-        Abre los PDF sin salir del sitio y descarga los archivos que necesites
-        con un solo clic.
+        Descarga PDF, presentaciones y documentos de apoyo antes de cada reunión o clase bíblica.
       </p>
     </article>
     <article class="pillar">
-      <h3>Control pastoral</h3>
+      <h3>Seguimiento pastoral</h3>
       <p>
-        Los superusuarios administran categorías, eliminan archivos y dan la
-        bienvenida a nuevos colaboradores.
+        Los responsables revisan qué materiales se consultan y mantienen la biblioteca al día.
       </p>
     </article>
   </div>
@@ -81,10 +125,10 @@
 <section class="module module--latest">
   <header class="module__header">
     <div>
-      <h2>Últimos documentos</h2>
-      <p>Los aportes más recientes cargados por la congregación.</p>
+      <h2>Últimos recursos añadidos</h2>
+      <p>Consulta los documentos que se han incorporado recientemente.</p>
     </div>
-    <a class="link-arrow" href="/library">Ver biblioteca completa</a>
+    <a class="link-arrow" href="/library">Ir a la biblioteca</a>
   </header>
   {% if documents %}
   <ul class="document-feed">
@@ -97,7 +141,7 @@
         <h3 class="document-card__title">{{ doc.filename }}</h3>
         <p class="document-card__meta">
           {{ doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type }}
-          &middot; {{ doc.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
+          · {{ doc.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
         </p>
         {% if doc.category %}
         <span class="badge">{{ doc.category.name }}</span>
@@ -142,76 +186,53 @@
   </ul>
   {% else %}
   <p class="empty empty--center">
-    Aún no hay documentos cargados. ¡Comparte el primero!
+    Aún no hay documentos cargados. Los recursos aparecerán aquí cuando se incorporen a la biblioteca.
   </p>
   {% endif %}
 </section>
 
-<section class="module module--sermon">
+{% if featured_categories %}
+<section class="module module--learning">
   <header class="module__header">
     <div>
-      <h2>Sermón de la semana</h2>
-      <p>Accede al último mensaje publicado en la categoría {{ sermon_category_name }}.</p>
+      <h2>Material de aprendizaje disponible</h2>
+      <p>Comienza tu búsqueda de recursos eligiendo la categoría que mejor apoye tus estudios.</p>
     </div>
   </header>
-  {% if sermon_document %}
-  <article class="sermon-card">
-    <div class="sermon-card__head">
-      <div class="sermon-card__tags">
-        <span class="badge">{{ sermon_document.category.name if sermon_document.category else sermon_category_name }}</span>
-        {% if sermon_document.subcategory %}
-        <span class="badge badge--soft">{{ sermon_document.subcategory.name }}</span>
+  <div class="pathway-grid">
+    {% for item in featured_categories %}
+    <article class="pathway-card">
+      <h3>{{ item.name }}</h3>
+      <p>
+        {{ item.documents }} recurso{{ 's' if item.documents != 1 }}
+        {% if item.subcategories %}
+        · {{ item.subcategories|length }} subcategoría{{ 's' if item.subcategories|length != 1 }}
         {% endif %}
-      </div>
-      <time class="sermon-card__date" datetime="{{ sermon_document.uploaded_at.isoformat() }}">
-        Subido el {{ sermon_document.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
-      </time>
-    </div>
-    <h3 class="sermon-card__title">{{ sermon_document.filename }}</h3>
-    <p class="sermon-card__lead">
-      Comparte el mensaje pastoral de esta semana con todos los grupos y ministerios.
-    </p>
-    <div class="sermon-card__actions">
-      <a
-        class="button button--primary"
-        href="/documents/{{ sermon_document.id }}/download"
-        data-download-url="/documents/{{ sermon_document.id }}/download"
-        data-filename="{{ sermon_document.filename }}"
-      >
-        Descargar
-      </a>
-      {% if sermon_document.content_type == "application/pdf" %}
-      <a
-        class="button button--outline"
-        href="/documents/{{ sermon_document.id }}/view"
-        data-view-url="/documents/{{ sermon_document.id }}/view"
-        data-filename="{{ sermon_document.filename }}"
-      >
-        Ver en línea
-      </a>
+      </p>
+      {% if item.subcategories %}
+      <ul class="pathway-card__list">
+        {% for name in item.subcategories[:3] %}
+        <li>{{ name }}</li>
+        {% endfor %}
+        {% if item.subcategories|length > 3 %}
+        <li>y más…</li>
+        {% endif %}
+      </ul>
+      {% else %}
+      <p class="pathway-card__empty">Próximamente subcategorías específicas.</p>
       {% endif %}
-    </div>
-  </article>
-  {% else %}
-  <div class="empty-card">
-    <h3>Aún no se han compartido sermones</h3>
-    <p>
-      Sube un recurso a la categoría {{ sermon_category_name }} para destacarlo automáticamente en la portada.
-    </p>
-    {% if current_user and current_user.is_superuser %}
-    <a class="button button--primary" href="/admin/upload">Subir sermón</a>
-    {% else %}
-    <a class="button button--primary" href="/library">Explorar biblioteca</a>
-    {% endif %}
+      <a class="button button--soft" href="/library#category-{{ item.id }}">Ver categoría</a>
+    </article>
+    {% endfor %}
   </div>
-  {% endif %}
 </section>
+{% endif %}
 
 <section class="module module--map">
   <header class="module__header">
     <div>
       <h2>Encuéntranos</h2>
-      <p>Visita nuestra congregación y comparte la comunión en {{ church_address }}.</p>
+      <p>Visita nuestra congregación y disfruta de la comunión en {{ church_address }}.</p>
     </div>
   </header>
   <div class="map-board" data-map-root>
@@ -219,21 +240,22 @@
       class="map-board__canvas"
       data-map-placeholder
       data-address="{{ church_address }}"
+      data-map-token="{{ mapbox_token }}"
     >
       <p>
-        Aquí irá un mapa interactivo. Integra tu proveedor favorito (Mapbox, Google Maps,
-        OpenStreetMap, etc.) utilizando el atributo <code>data-address</code> para centrarlo.
+        Integra aquí tu mapa preferido (Mapbox, Google Maps, OpenStreetMap) utilizando el atributo
+        <code>data-address</code> para centrar la ubicación.
       </p>
       <p class="map-board__address">
-        Dirección actual: <strong>{{ church_address }}</strong>
+        Dirección: <strong>{{ church_address }}</strong>
       </p>
     </div>
     <aside class="map-board__details">
       <h3>Planifica tu visita</h3>
       <ul>
-        <li>Coordina con antelación actividades y reuniones ministeriales.</li>
-        <li>Comparte la ubicación con nuevos asistentes y grupos de amistad.</li>
-        <li>Actualiza este espacio cuando habilites la API de mapas.</li>
+        <li>Coordina con anticipación horarios de discipulado y ensayos.</li>
+        <li>Comparte la ubicación con nuevos asistentes y familias.</li>
+        <li>Promueve encuentros en grupos de amistad durante la semana.</li>
       </ul>
       <a
         class="button button--ghost"
@@ -246,19 +268,4 @@
     </aside>
   </div>
 </section>
-
-{% if current_user and current_user.is_superuser %}
-<section class="module module--callout">
-  <div class="callout">
-    <div class="callout__content">
-      <h2>Panel de superusuario</h2>
-      <p>
-        Gestiona categorías, sube nuevos materiales y mantén la biblioteca al
-        día con el panel administrativo.
-      </p>
-    </div>
-    <a class="button button--primary" href="/admin/upload">Ir al panel</a>
-  </div>
-</section>
-{% endif %}
 {% endblock %}
