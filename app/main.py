@@ -20,6 +20,7 @@ from fastapi.templating import Jinja2Templates
 from openai import OpenAI
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.exc import IntegrityError  # <-- agregado
 
 from . import models
 from .database import Base, SessionLocal, engine, get_db
@@ -29,12 +30,12 @@ Base.metadata.create_all(bind=engine)
 
 
 def ensure_schema() -> None:
+    """Compat: sólo ejecuta el PRAGMA/ALTER para SQLite; en otros motores no hace nada."""
+    if engine.url.get_backend_name() != "sqlite":
+        return
     with engine.begin() as conn:
-        columns = [
-            row[1]
-            for row in conn.exec_driver_sql("PRAGMA table_info(documents)")
-        ]
-        if "category_id" not in columns:
+        cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(documents)")]
+        if "category_id" not in cols:
             conn.exec_driver_sql(
                 "ALTER TABLE documents ADD COLUMN category_id INTEGER REFERENCES categories(id)"
             )
@@ -89,7 +90,6 @@ def ensure_default_superuser() -> None:
 
 
 ensure_default_superuser()
-
 
 
 def _fetch_document(db: Session, document_id: int) -> models.Document:
@@ -605,7 +605,16 @@ async def admin_categories_create(
 
     category = models.Category(name=cleaned)
     db.add(category)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return _render_admin_categories(
+            request,
+            db=db,
+            current_user=current_user,
+            errors=["No se pudo crear la categoria (posible duplicado o error de base de datos)."],
+        )
 
     return redirect_response(
         f"{request.url_for('admin_categories_view')}?msg=Categoria%20creada"
