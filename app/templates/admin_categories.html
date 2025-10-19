@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Categorías | Biblioteca Apostólica{% endblock %}
+{% block body_class %}page-admin-categories{% endblock %}
+
+{% block masthead %}
+<section class="page-hero">
+  <div class="page-hero__content">
+    <h1>Gestión de categorías</h1>
+    <p>
+      Crea y administra las categorías que organizan los recursos de la
+      biblioteca. Un buen orden ayuda a toda la congregación.
+    </p>
+  </div>
+</section>
+{% endblock %}
+
+{% block surface_class %}surface-admin{% endblock %}
+
+{% block content %}
+<div class="admin-categories">
+  <section class="admin-card admin-card--form">
+    <header class="admin-card__header">
+      <h2>Nueva categoría</h2>
+      <p>Agrega categorías para clasificar los documentos cargados.</p>
+    </header>
+
+    {% if message %}
+    <p class="form-messages form-messages--success">{{ message }}</p>
+    {% endif %}
+
+    {% if errors %}
+    <ul class="form-messages form-messages--error">
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form class="form-grid" action="/admin/categories" method="post">
+      <div class="form-field">
+        <label class="form-label" for="name">Nombre de la categoría</label>
+        <input
+          class="form-input"
+          type="text"
+          id="name"
+          name="name"
+          placeholder="Ej. Informes, Manuales, Juventud..."
+          required
+        />
+      </div>
+      <button type="submit" class="button button--primary">Crear categoría</button>
+    </form>
+  </section>
+
+  <section class="admin-card admin-card--list">
+    <header class="admin-card__header">
+      <h2>Categorías existentes</h2>
+      <p>Gestiona o elimina categorías que ya no se utilicen.</p>
+    </header>
+
+    {% if categories %}
+    <ul class="category-deck">
+      {% for category in categories %}
+      <li class="category-chip">
+        <div class="category-chip__badge" aria-hidden="true">
+          {{ category.name[0] }}
+        </div>
+        <div class="category-chip__body">
+          <h3>{{ category.name }}</h3>
+          <p>Creada el {{ category.created_at.strftime("%d/%m/%Y") }}</p>
+        </div>
+        <form
+          class="action-inline-form"
+          action="/admin/categories/{{ category.id }}/delete"
+          method="post"
+          data-action="delete-category"
+          data-name="{{ category.name }}"
+        >
+          <button class="link-danger" type="submit">Eliminar</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty empty--center">
+      Todavía no se han creado categorías.
+    </p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

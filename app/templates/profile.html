@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil | Biblioteca Apostólica{% endblock %}
+{% block body_class %}page-profile{% endblock %}
+
+{% block masthead %}
+<section class="hero hero--profile">
+  <div class="hero__inner">
+    <div class="avatar-ring" aria-hidden="true">
+      <span>{{ current_user.full_name[0] }}</span>
+    </div>
+    <div class="hero__content">
+      <h1>{{ current_user.full_name }}</h1>
+      <p>Miembro activo de la Biblioteca Apostólica.</p>
+      <div class="stat-list">
+        <div class="stat">
+          <span class="stat__label">Correo</span>
+          <span class="stat__value">{{ current_user.email }}</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Miembro desde</span>
+          <span class="stat__value">{{ current_user.created_at.strftime("%d/%m/%Y") }}</span>
+        </div>
+      </div>
+      <div class="hero__actions">
+        <a class="button button--primary" href="/library">Explorar biblioteca</a>
+        {% if current_user.is_superuser %}
+        <a class="button button--outline" href="/admin/upload">Panel administrativo</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block surface_class %}surface-profile{% endblock %}
+
+{% block content %}
+<section class="module module--history">
+  <header class="module__header">
+    <div>
+      <h2>Historial de descargas</h2>
+      <p>Visualiza tus últimos 20 recursos descargados.</p>
+    </div>
+  </header>
+
+  {% if history %}
+  <ul class="history-feed">
+    {% for item in history %}
+    <li class="history-card">
+      <div class="history-card__type" aria-hidden="true">
+        {{ "PDF" if item.content_type == "application/pdf" else "DOC" }}
+      </div>
+      <div class="history-card__body">
+        <h3 class="history-card__title">{{ item.filename }}</h3>
+        <p class="history-card__meta">
+          Descargado el {{ item.downloaded_at.strftime("%d/%m/%Y %H:%M") }}
+        </p>
+        {% if item.category_name %}
+        <span class="badge">{{ item.category_name }}</span>
+        {% endif %}
+      </div>
+      <div class="history-card__actions">
+        <a
+          class="button button--ghost"
+          href="/documents/{{ item.document_id }}/download"
+          data-download-url="/documents/{{ item.document_id }}/download"
+          data-filename="{{ item.filename }}"
+        >
+          Descargar
+        </a>
+        {% if item.content_type == "application/pdf" %}
+        <a
+          class="button button--outline"
+          href="/documents/{{ item.document_id }}/view"
+          data-view-url="/documents/{{ item.document_id }}/view"
+          data-filename="{{ item.filename }}"
+        >
+          Abrir
+        </a>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-card">
+    <h3>No hay descargas registradas</h3>
+    <p>Explora la biblioteca y comienza a crear tu historial personal.</p>
+    <a class="button button--primary" href="/library">Ir a la biblioteca</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

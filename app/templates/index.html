@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio | Biblioteca Apostólica{% endblock %}
+{% block body_class %}page-home{% endblock %}
+
+{% block masthead %}
+<section class="hero hero--home">
+  <div class="hero__badge">Apostolic Assembly of the Faith in Christ Jesus</div>
+  <div class="hero__inner">
+    <div class="hero__content">
+      <h1>Biblioteca Apostólica</h1>
+      <p>
+        Custodia y comparte los recursos de tu congregación desde un espacio
+        seguro, moderno y alineado a nuestra identidad.
+      </p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="/library">Explorar biblioteca</a>
+        {% if current_user %}
+        {% if current_user.is_superuser %}
+        <a class="button button--outline" href="/admin/upload">Panel de administración</a>
+        {% endif %}
+        {% else %}
+        <a class="button button--ghost" href="/register">Únete a la comunidad</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="hero__media">
+      <div class="hero-card">
+        <h3 class="hero-card__title">Organiza. Comparte. Inspira.</h3>
+        <p class="hero-card__caption">
+          Centraliza estudios bíblicos, planificaciones, boletines y más.
+        </p>
+        <ul class="hero-card__list">
+          <li>Compatibilidad con PDF, Word, PowerPoint y texto</li>
+          <li>Categorización por ministerios y áreas de servicio</li>
+          <li>Acceso rápido y seguimiento de descargas</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block surface_class %}surface-home{% endblock %}
+
+{% block content %}
+<section class="module module--intro">
+  <div class="module__headline">
+    <h2>Tu biblioteca digital al servicio de la iglesia</h2>
+    <p>
+      Conecta a líderes, miembros y voluntarios con materiales actualizados
+      desde cualquier dispositivo. Mantén la unidad con un sistema de gestión
+      sencillo y fiel a los colores de nuestra Asamblea.
+    </p>
+  </div>
+  <div class="pillars">
+    <article class="pillar">
+      <h3>Categorías claras</h3>
+      <p>
+        Mantén cada documento etiquetado por ministerio, jornada o evento para
+        encontrarlo en segundos.
+      </p>
+    </article>
+    <article class="pillar">
+      <h3>Visor integrado</h3>
+      <p>
+        Abre los PDF sin salir del sitio y descarga los archivos que necesites
+        con un solo clic.
+      </p>
+    </article>
+    <article class="pillar">
+      <h3>Control pastoral</h3>
+      <p>
+        Los superusuarios administran categorías, eliminan archivos y dan la
+        bienvenida a nuevos colaboradores.
+      </p>
+    </article>
+  </div>
+</section>
+
+<section class="module module--latest">
+  <header class="module__header">
+    <div>
+      <h2>Últimos documentos</h2>
+      <p>Los aportes más recientes cargados por la congregación.</p>
+    </div>
+    <a class="link-arrow" href="/library">Ver biblioteca completa</a>
+  </header>
+  {% if documents %}
+  <ul class="document-feed">
+    {% for doc in documents %}
+    <li class="document-card document-card--compact">
+      <div class="document-card__type" aria-hidden="true">
+        {{ "PDF" if doc.content_type == "application/pdf" else "DOC" }}
+      </div>
+      <div class="document-card__body">
+        <h3 class="document-card__title">{{ doc.filename }}</h3>
+        <p class="document-card__meta">
+          {{ doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type }}
+          &middot; {{ doc.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
+        </p>
+        {% if doc.category %}
+        <span class="badge">{{ doc.category.name }}</span>
+        {% endif %}
+      </div>
+      <div class="document-card__actions">
+        <a
+          class="button button--ghost"
+          href="/documents/{{ doc.id }}/download"
+          data-download-url="/documents/{{ doc.id }}/download"
+          data-filename="{{ doc.filename }}"
+        >
+          Descargar
+        </a>
+        {% if doc.content_type == "application/pdf" %}
+        <a
+          class="button button--outline"
+          href="/documents/{{ doc.id }}/view"
+          data-view-url="/documents/{{ doc.id }}/view"
+          data-filename="{{ doc.filename }}"
+        >
+          Abrir
+        </a>
+        {% endif %}
+        {% if current_user and current_user.is_superuser %}
+        <form
+          class="action-inline-form"
+          action="/documents/{{ doc.id }}/delete"
+          method="post"
+          data-action="delete-doc"
+          data-filename="{{ doc.filename }}"
+        >
+          <button class="link-danger" type="submit">Eliminar</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty empty--center">
+    Aún no hay documentos cargados. ¡Comparte el primero!
+  </p>
+  {% endif %}
+</section>
+
+{% if current_user and current_user.is_superuser %}
+<section class="module module--callout">
+  <div class="callout">
+    <div class="callout__content">
+      <h2>Panel de superusuario</h2>
+      <p>
+        Gestiona categorías, sube nuevos materiales y mantén la biblioteca al
+        día con el panel administrativo.
+      </p>
+    </div>
+    <a class="button button--primary" href="/admin/upload">Ir al panel</a>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

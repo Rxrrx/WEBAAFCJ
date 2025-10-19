@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Biblioteca Apostolica{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=2" />
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="{% block body_class %}{% endblock %}">
+    <div class="site-shell">
+      <div class="site-decor" aria-hidden="true">
+        <span class="decor-layer decor-layer--one"></span>
+        <span class="decor-layer decor-layer--two"></span>
+        <span class="decor-layer decor-layer--three"></span>
+      </div>
+
+      <header class="site-header">
+        <div class="site-header__brand">
+          <a class="site-logo" href="/">
+            <span class="site-logo__crest" aria-hidden="true"></span>
+            <span class="site-logo__text">
+              <span class="site-logo__title">Biblioteca Apostolica</span>
+              <span class="site-logo__subtitle">Fe en Cristo Jesus</span>
+            </span>
+          </a>
+        </div>
+
+        <nav class="site-nav" aria-label="Principal">
+          {% set current_path = request.url.path %}
+          <a
+            class="site-nav__link {{ 'is-active' if current_path == '/' else '' }}"
+            href="/"
+          >
+            Inicio
+          </a>
+          <a
+            class="site-nav__link {{ 'is-active' if current_path.startswith('/library') else '' }}"
+            href="/library"
+          >
+            Biblioteca
+          </a>
+          {% if current_user %}
+          {% if current_user.is_superuser %}
+          <a
+            class="site-nav__link {{ 'is-active' if current_path.startswith('/admin') else '' }}"
+            href="/admin/upload"
+          >
+            Administracion
+          </a>
+          {% endif %}
+          {% endif %}
+        </nav>
+
+        <div class="site-actions">
+          {% if current_user %}
+          <a class="site-pill" href="/profile">
+            Hola,
+            <strong>{{ current_user.full_name.split(" ")[0] }}</strong>
+          </a>
+          <form class="site-inline-form" action="/logout" method="post">
+            <button class="button button--ghost" type="submit">Salir</button>
+          </form>
+          {% else %}
+          <a class="button button--ghost" href="/login">Iniciar sesion</a>
+          <a class="button button--primary" href="/register">Crear cuenta</a>
+          {% endif %}
+        </div>
+      </header>
+
+      <main class="site-main">
+        {% block masthead %}{% endblock %}
+        <section class="content-surface {% block surface_class %}{% endblock %}">
+          {% block content %}{% endblock %}
+        </section>
+      </main>
+
+      <div class="chatbot" data-chatbot>
+        <button
+          class="chatbot__trigger"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          data-chatbot-trigger
+        >
+          <span class="chatbot__pulse" aria-hidden="true"></span>
+          <span class="chatbot__icon" aria-hidden="true">?</span>
+          <span class="chatbot__trigger-label">Necesitas ayuda?</span>
+        </button>
+        <div
+          class="chatbot__panel"
+          role="dialog"
+          aria-label="Asistente biblico"
+          hidden
+          data-chatbot-panel
+        >
+          <header class="chatbot__header">
+            <div>
+              <h2>Luz de Guia</h2>
+              <p>Asistente para preguntas sobre la Biblia y la fe evangelica.</p>
+            </div>
+            <button
+              class="chatbot__close"
+              type="button"
+              aria-label="Cerrar asistente"
+              data-chatbot-close
+            >
+              &times;
+            </button>
+          </header>
+          <div class="chatbot__log" data-chatbot-log>
+            <p class="chatbot__placeholder">
+              Hola, soy Luz de Guia. Pregunta lo que necesites sobre la Biblia
+              o la fe cristiana evangelica.
+            </p>
+          </div>
+          <div class="chatbot__status" data-chatbot-status role="status" aria-live="polite"></div>
+          <form class="chatbot__form" data-chatbot-form>
+            <label class="chatbot__label" for="chatbot-input">Escribe tu pregunta:</label>
+            <div class="chatbot__input-group">
+              <input
+                class="chatbot__input"
+                id="chatbot-input"
+                name="message"
+                type="text"
+                placeholder="Ej. Que ensena Juan 3:16?"
+                autocomplete="off"
+                data-chatbot-input
+                required
+              />
+              <button class="chatbot__send" type="submit">Enviar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <footer class="site-footer">
+        <div class="site-footer__brand">
+          <span class="site-footer__crest" aria-hidden="true"></span>
+          <div>
+            <strong>Asamblea Apostolica de la Fe en Cristo Jesus</strong>
+            <p>Recursos y documentos para la comunidad.</p>
+          </div>
+        </div>
+        <div class="site-footer__extras">
+          <span>&copy; {{ current_year | default('2024') }} Todos los derechos reservados.</span>
+          <a class="site-footer__link" href="/library">Accede a la biblioteca</a>
+        </div>
+      </footer>
+    </div>
+    <script src="/static/app.js"></script>
+    {% block extra_scripts %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    container_name: biblioteca-docs
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/code/data
+    restart: unless-stopped

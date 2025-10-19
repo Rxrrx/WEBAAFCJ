@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Panel de superusuario | Biblioteca Apostólica{% endblock %}
+{% block body_class %}page-admin-upload{% endblock %}
+
+{% block masthead %}
+<section class="hero hero--admin">
+  <div class="hero__inner">
+    <div class="hero__content">
+      <h1>Panel de administración</h1>
+      <p>
+        Sube y organiza los recursos oficiales de la Asamblea. Mantén las
+        categorías actualizadas para que la congregación encuentre rápidamente
+        el material que necesita.
+      </p>
+      <div class="hero__actions">
+        <a class="button button--outline" href="/admin/categories">
+          Gestionar categorías
+        </a>
+        <a class="button button--ghost" href="/library">Ver biblioteca</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block surface_class %}surface-admin{% endblock %}
+
+{% block content %}
+<div class="admin-grid">
+  <section class="admin-card admin-card--upload">
+    <header class="admin-card__header">
+      <h2>Nueva subida</h2>
+      <p>Formatos permitidos: PDF, DOC, DOCX, PPT, PPTX y TXT ({{ max_file_size }} MB máximo).</p>
+    </header>
+
+    {% if categories %}
+    <form class="form-grid" action="/upload" method="post" enctype="multipart/form-data">
+      <div class="form-field">
+        <label class="form-label" for="category_id">Categoría</label>
+        <select class="form-input" id="category_id" name="category_id" required>
+          <option value="" disabled selected>Selecciona una categoría</option>
+          {% for category in categories %}
+          <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="file">Documento</label>
+        <input
+          class="form-input"
+          type="file"
+          id="file"
+          name="file"
+          required
+          accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
+        />
+        <p class="form-hint">El archivo se almacenará de forma segura en el sistema.</p>
+      </div>
+
+      <button type="submit" class="button button--primary">Subir documento</button>
+    </form>
+    {% else %}
+    <div class="empty-card">
+      <h3>No hay categorías disponibles</h3>
+      <p>Crea una categoría antes de subir nuevos documentos.</p>
+      <a class="button button--outline" href="/admin/categories">Gestionar categorías</a>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="admin-card admin-card--recent">
+    <header class="admin-card__header">
+      <h2>Subidas recientes</h2>
+      <a class="link-arrow" href="/library">Ir a la biblioteca</a>
+    </header>
+    {% if documents %}
+    <ul class="document-feed document-feed--admin">
+      {% for doc in documents %}
+      <li class="document-card">
+        <div class="document-card__type" aria-hidden="true">
+          {{ "PDF" if doc.content_type == "application/pdf" else "DOC" }}
+        </div>
+        <div class="document-card__body">
+          <h3 class="document-card__title">{{ doc.filename }}</h3>
+          <p class="document-card__meta">
+            {{ doc.content_type }} &middot; {{ doc.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
+          </p>
+          {% if doc.category %}
+          <span class="badge">{{ doc.category.name }}</span>
+          {% endif %}
+        </div>
+        <div class="document-card__actions">
+          <a
+            class="button button--ghost"
+            href="/documents/{{ doc.id }}/download"
+            data-download-url="/documents/{{ doc.id }}/download"
+            data-filename="{{ doc.filename }}"
+          >
+            Descargar
+          </a>
+          {% if doc.content_type == "application/pdf" %}
+          <a
+            class="button button--outline"
+            href="/documents/{{ doc.id }}/view"
+            data-view-url="/documents/{{ doc.id }}/view"
+            data-filename="{{ doc.filename }}"
+          >
+            Abrir
+          </a>
+          {% endif %}
+          <form
+            class="action-inline-form"
+            action="/documents/{{ doc.id }}/delete"
+            method="post"
+            data-action="delete-doc"
+            data-filename="{{ doc.filename }}"
+          >
+            <button class="link-danger" type="submit">Eliminar</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty empty--center">
+      Todavía no hay documentos almacenados.
+    </p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

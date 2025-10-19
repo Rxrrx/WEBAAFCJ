@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Biblioteca | Biblioteca Apostólica{% endblock %}
+{% block body_class %}page-library{% endblock %}
+
+{% block masthead %}
+<section class="page-hero">
+  <div class="page-hero__content">
+    <h1>Biblioteca por categorías</h1>
+    <p>
+      Encuentra rápidamente los recursos de la Asamblea organizados por
+      ministerio y área de servicio, listos para descargar o visualizar en
+      línea.
+    </p>
+  </div>
+</section>
+{% endblock %}
+
+{% block surface_class %}surface-library{% endblock %}
+
+{% block content %}
+{% if category_groups %}
+{% for group in category_groups %}
+<section class="catalogue">
+  <header class="catalogue__header">
+    <div>
+      <h2>{{ group.category.name }}</h2>
+      <p>{{ group.documents|length }} documento{{ 's' if group.documents|length != 1 }}</p>
+    </div>
+    {% if current_user and current_user.is_superuser %}
+    <a class="link-arrow" href="/admin/upload">Agregar documentos</a>
+    {% endif %}
+  </header>
+  <div class="catalogue__grid">
+    {% for doc in group.documents %}
+    <article class="document-card">
+      <div class="document-card__type" aria-hidden="true">
+        {{ "PDF" if doc.content_type == "application/pdf" else "DOC" }}
+      </div>
+      <div class="document-card__body">
+        <h3 class="document-card__title">{{ doc.filename }}</h3>
+        <p class="document-card__meta">
+          Publicado el {{ doc.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
+        </p>
+        <p class="document-card__meta document-card__meta--muted">
+          {{ doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type }}
+        </p>
+      </div>
+      <div class="document-card__actions">
+        <a
+          class="button button--ghost"
+          href="/documents/{{ doc.id }}/download"
+          data-download-url="/documents/{{ doc.id }}/download"
+          data-filename="{{ doc.filename }}"
+        >
+          Descargar
+        </a>
+        {% if doc.content_type == "application/pdf" %}
+        <a
+          class="button button--outline"
+          href="/documents/{{ doc.id }}/view"
+          data-view-url="/documents/{{ doc.id }}/view"
+          data-filename="{{ doc.filename }}"
+        >
+          Abrir
+        </a>
+        {% endif %}
+        {% if current_user and current_user.is_superuser %}
+        <form
+          class="action-inline-form"
+          action="/documents/{{ doc.id }}/delete"
+          method="post"
+          data-action="delete-doc"
+          data-filename="{{ doc.filename }}"
+        >
+          <button class="link-danger" type="submit">Eliminar</button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+{% endif %}
+
+{% if uncategorized_documents %}
+<section class="catalogue catalogue--uncategorized">
+  <header class="catalogue__header">
+    <div>
+      <h2>Sin categoría</h2>
+      <p>{{ uncategorized_documents|length }} documento{{ 's' if uncategorized_documents|length != 1 }}</p>
+    </div>
+  </header>
+  <div class="catalogue__grid">
+    {% for doc in uncategorized_documents %}
+    <article class="document-card">
+      <div class="document-card__type" aria-hidden="true">
+        {{ "PDF" if doc.content_type == "application/pdf" else "DOC" }}
+      </div>
+      <div class="document-card__body">
+        <h3 class="document-card__title">{{ doc.filename }}</h3>
+        <p class="document-card__meta">
+          Publicado el {{ doc.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
+        </p>
+        <p class="document-card__meta document-card__meta--muted">
+          {{ doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type }}
+        </p>
+      </div>
+      <div class="document-card__actions">
+        <a
+          class="button button--ghost"
+          href="/documents/{{ doc.id }}/download"
+          data-download-url="/documents/{{ doc.id }}/download"
+          data-filename="{{ doc.filename }}"
+        >
+          Descargar
+        </a>
+        {% if doc.content_type == "application/pdf" %}
+        <a
+          class="button button--outline"
+          href="/documents/{{ doc.id }}/view"
+          data-view-url="/documents/{{ doc.id }}/view"
+          data-filename="{{ doc.filename }}"
+        >
+          Abrir
+        </a>
+        {% endif %}
+        {% if current_user and current_user.is_superuser %}
+        <form
+          class="action-inline-form"
+          action="/documents/{{ doc.id }}/delete"
+          method="post"
+          data-action="delete-doc"
+          data-filename="{{ doc.filename }}"
+        >
+          <button class="link-danger" type="submit">Eliminar</button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if not category_groups and not uncategorized_documents %}
+<p class="empty empty--center">
+  Todavía no hay documentos en la biblioteca. Comienza cargando materiales
+  desde el panel administrativo.
+</p>
+{% endif %}
+{% endblock %}
