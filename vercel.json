@@ -1,0 +1,22 @@
+{
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "60mb",
+        "pythonVersion": "3.11",
+        "includeFiles": [
+          "app/**",
+          "requirements.txt"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
+    }
+  ]
+}

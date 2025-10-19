@@ -1,11 +1,14 @@
 import os
 from dataclasses import dataclass, field
 from functools import lru_cache
+from pathlib import Path
 from typing import List, Optional
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 @dataclass
@@ -13,8 +16,12 @@ class Settings:
     """Centraliza configuración leída desde variables de entorno."""
 
     app_title: str = field(default="Biblioteca de Documentos")
-    templates_dir: str = field(default="app/templates")
-    static_dir: str = field(default="app/static")
+    templates_dir: str = field(
+        default_factory=lambda: str(BASE_DIR / "templates")
+    )
+    static_dir: str = field(
+        default_factory=lambda: str(BASE_DIR / "static")
+    )
     app_session_secret: str = field(
         default_factory=lambda: os.environ.get(
             "APP_SESSION_SECRET", "dev-secret-key-change-me"
