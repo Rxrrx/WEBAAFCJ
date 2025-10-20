@@ -1,3 +1,4 @@
+from io import BytesIO
 from typing import Optional
 
 from fastapi import (
@@ -10,8 +11,9 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
+from urllib.parse import quote
 
 from app import models
 from app.core.config import get_settings
@@ -25,6 +27,11 @@ from app.dependencies import (
 router = APIRouter(tags=["documentos"])
 settings = get_settings()
 
+
+def _build_content_disposition(filename: str, inline: bool = False) -> str:
+    disposition = 'inline' if inline else 'attachment'
+    safe = quote(filename)
+    return f"{disposition}; filename*=UTF-8''{safe}"
 
 def _fetch_document(db: Session, document_id: int) -> models.Document:
     document = (
@@ -138,10 +145,19 @@ async def view_document(
     db: Session = Depends(get_db),
 ):
     document = _fetch_document(db, document_id)
-    content = bytes(document.content) if document.content is not None else b""
-    headers = {"Content-Disposition": f'inline; filename="{document.filename}"'}
-    return Response(
-        content=content,
+    raw_content = document.content or b""
+    if isinstance(raw_content, memoryview):
+        raw_content = raw_content.tobytes()
+    content = bytes(raw_content)
+    stream = BytesIO(content)
+    headers = {
+        "Content-Disposition": _build_content_disposition(document.filename, inline=True),
+        "Content-Length": str(len(content)),
+        "Cache-Control": "no-store",
+    }
+    stream.seek(0)
+    return StreamingResponse(
+        stream,
         media_type=document.content_type,
         headers=headers,
     )
@@ -160,10 +176,19 @@ async def download_document(
         )
         db.add(download_entry)
         db.commit()
-    content = bytes(document.content) if document.content is not None else b""
-    headers = {"Content-Disposition": f'attachment; filename="{document.filename}"'}
-    return Response(
-        content=content,
+    raw_content = document.content or b""
+    if isinstance(raw_content, memoryview):
+        raw_content = raw_content.tobytes()
+    content = bytes(raw_content)
+    stream = BytesIO(content)
+    stream.seek(0)
+    headers = {
+        "Content-Disposition": _build_content_disposition(document.filename, inline=False),
+        "Content-Length": str(len(content)),
+        "Cache-Control": "no-store",
+    }
+    return StreamingResponse(
+        stream,
         media_type=document.content_type,
         headers=headers,
     )
