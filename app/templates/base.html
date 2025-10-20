@@ -115,6 +115,15 @@
               <h2>Luz de Guía</h2>
               <p>Asistente para preguntas sobre la Biblia y la fe evangélica.</p>
             </div>
+            <div class="chatbot__header-actions">
+              <button
+                class="chatbot__expand"
+                type="button"
+                aria-label="Expandir chat"
+                data-chatbot-expand
+              >
+                <span aria-hidden="true">⤢</span>
+              </button>
             <button
               class="chatbot__close"
               type="button"
@@ -123,11 +132,12 @@
             >
               &times;
             </button>
+            </div>
           </header>
           <div class="chatbot__log" data-chatbot-log>
             <p class="chatbot__placeholder">
-              ¡Hola! Soy Luz de Guía. Pregunta lo que necesites sobre la Biblia
-              o la fe cristiana evangélica.
+              ¡Hola! Soy Luz de Guía. Pregunta lo que necesites sobre la Biblia,
+              personajes y acontecimientos de la fe cristiana, la adoración o la vida devocional.
             </p>
           </div>
           <div class="chatbot__status" data-chatbot-status role="status" aria-live="polite"></div>
@@ -152,7 +162,13 @@
 
       <footer class="site-footer">
         <div class="site-footer__brand">
-          <span class="site-footer__crest" aria-hidden="true"></span>
+          <span class="site-footer__mark">
+            <img
+              class="site-footer__logo"
+              src="/static/images/logo.svg"
+              alt="Logotipo Biblioteca Apostólica"
+            />
+          </span>
           <div>
             <strong>Asamblea Apostólica de la Fe en Cristo Jesús</strong>
             <p>Recursos para fortalecer el aprendizaje bíblico de la iglesia.</p>

@@ -278,6 +278,7 @@
     const trigger = root.querySelector("[data-chatbot-trigger]");
     const panel = root.querySelector("[data-chatbot-panel]");
     const closeButton = root.querySelector("[data-chatbot-close]");
+    const expandButton = root.querySelector("[data-chatbot-expand]");
     const form = root.querySelector("[data-chatbot-form]");
     const input = root.querySelector("[data-chatbot-input]");
     const log = root.querySelector("[data-chatbot-log]");
@@ -309,7 +310,9 @@
       bubble.className = `chatbot__bubble chatbot__bubble--${variant}`;
       bubble.innerHTML = renderMarkdownSafe(text);
       log.appendChild(bubble);
-      log.scrollTop = log.scrollHeight;
+      window.requestAnimationFrame(() => {
+        bubble.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
       return bubble;
     }
 
@@ -352,6 +355,25 @@
       }
     }
 
+    function toggleExpand(force) {
+      const expanded =
+        typeof force === "boolean" ? force : !root.classList.contains("chatbot--expanded");
+      root.classList.toggle("chatbot--expanded", expanded);
+      if (expandButton) {
+        expandButton.setAttribute(
+          "aria-label",
+          expanded ? "Reducir chat" : "Expandir chat"
+        );
+        expandButton.dataset.state = expanded ? "expanded" : "normal";
+        expandButton.innerHTML = expanded ? "<span aria-hidden=\"true\">⤡</span>" : "<span aria-hidden=\"true\">⤢</span>";
+      }
+      if (expanded) {
+        window.requestAnimationFrame(() => {
+          log?.scrollTo({ top: log.scrollHeight, behavior: "smooth" });
+        });
+      }
+    }
+
     trigger?.addEventListener("click", () => {
       if (root.classList.contains("chatbot--open")) {
         ensurePanelClosed();
@@ -363,11 +385,15 @@
     closeButton?.addEventListener("click", ensurePanelClosed);
     form?.addEventListener("submit", submitMessage);
 
+    expandButton?.addEventListener("click", () => toggleExpand());
+
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && root.classList.contains("chatbot--open")) {
         ensurePanelClosed();
       }
     });
+
+    toggleExpand(root.classList.contains("chatbot--expanded"));
   }
 
   function initCategorySubcategoryPicker(root = document) {
