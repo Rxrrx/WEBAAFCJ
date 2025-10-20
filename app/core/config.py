@@ -111,9 +111,10 @@ class Settings:
         default_factory=lambda: os.environ.get(
             "CHATBOT_RESPONSE_GUIDELINE",
             (
-                "Responde con calidez pastoral en un máximo de cinco párrafos breves "
-                "y concisos (no más de 180-200 palabras en total), priorizando ideas "
-                "claras y evitando repeticiones extensas."
+                "Responde con calidez pastoral en hasta seis párrafos breves (máximo "
+                "220 palabras). Concluye invitando explícitamente a profundizar o "
+                "continuar la conversación, proponiendo al menos una pregunta o tema "
+                "relacionado."
             ),
         )
     )
