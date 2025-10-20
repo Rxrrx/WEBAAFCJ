@@ -44,7 +44,7 @@ class Settings:
     )
     church_address: str = field(
         default_factory=lambda: os.environ.get(
-            "CHURCH_ADDRESS", "Navidad 2094, Pedro Aguirre Cerda"
+            "CHURCH_ADDRESS", "Las Ilusiones 2194, Pedro Aguirre Cerda"
         )
     )
     sermon_category_name: str = field(

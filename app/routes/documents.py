@@ -10,7 +10,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app import models
@@ -139,8 +139,8 @@ async def view_document(
 ):
     document = _fetch_document(db, document_id)
     headers = {"Content-Disposition": f'inline; filename="{document.filename}"'}
-    return Response(
-        content=document.content,
+    return StreamingResponse(
+        iter([document.content]),
         media_type=document.content_type,
         headers=headers,
     )
@@ -160,8 +160,8 @@ async def download_document(
         db.add(download_entry)
         db.commit()
     headers = {"Content-Disposition": f'attachment; filename="{document.filename}"'}
-    return Response(
-        content=document.content,
+    return StreamingResponse(
+        iter([document.content]),
         media_type=document.content_type,
         headers=headers,
     )
