@@ -311,7 +311,7 @@
       bubble.innerHTML = renderMarkdownSafe(text);
       log.appendChild(bubble);
       window.requestAnimationFrame(() => {
-        bubble.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        bubble.scrollIntoView({ behavior: "smooth", block: "start" });
       });
       return bubble;
     }
@@ -353,7 +353,10 @@
       } finally {
         root.classList.remove("chatbot--loading");
         window.requestAnimationFrame(() => {
-          log.scrollTo({ top: log.scrollHeight, behavior: "smooth" });
+          const lastBubble = log.lastElementChild;
+          if (lastBubble) {
+            lastBubble.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
         });
       }
     }
