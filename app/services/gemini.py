@@ -26,7 +26,7 @@ _CONTINUATION_PROMPT = (
     "Mantén el formato y completa la idea que estaba en curso."
 )
 
-_OPEN_LIST_RE = re.compile(r"(?:^|\n)(?:[-*•]|(?:\d+\.))\s+[^\n]*$")
+_OPEN_LIST_RE = re.compile(r"(?:^|\n)(?:[-*\u2022]|(?:\d+\.))\s+[^\n]*$")
 
 
 def _normalize_finish_reason(value: Optional[str]) -> Optional[str]:
@@ -47,11 +47,21 @@ def _looks_like_truncated_markdown(text: str) -> bool:
         return True
     if _OPEN_LIST_RE.search(stripped):
         return True
-    if stripped.endswith(("-", "•", ":", ";", ",")):
+    if stripped.endswith(("-", "\u2022", ":", ";", ",")):
         return True
 
     last_line = stripped.splitlines()[-1].strip()
-    if last_line and last_line[-1] not in (".", "!", "?", "…", ")", "]", '"', "”", "'"):
+    if last_line and last_line[-1] not in (
+        ".",
+        "!",
+        "?",
+        "\u2026",
+        ")",
+        "]",
+        '"',
+        "\u201d",
+        "'",
+    ):
         if len(last_line.split()) >= 4:
             return True
 
@@ -348,6 +358,16 @@ def _call_gemini_raw(
     )
 
 
+def _compose_system_prompt(base_prompt: str, extra: Optional[str]) -> str:
+    if not extra:
+        return base_prompt
+    base_prompt = base_prompt.rstrip()
+    extra = extra.strip()
+    if not base_prompt:
+        return extra
+    return f"{base_prompt}\n\n{extra}"
+
+
 def get_gemini_reply(system_prompt: str, message: str) -> str:
     """Obtiene una respuesta del asistente Gemini con reintentos inteligentes."""
     settings = get_settings()
@@ -363,6 +383,10 @@ def get_gemini_reply(system_prompt: str, message: str) -> str:
     )
     models = _build_candidate_list(
         settings.gemini_chat_model, settings.gemini_default_model, available
+    )
+
+    composed_system_prompt = _compose_system_prompt(
+        system_prompt, settings.chat_response_guideline
     )
 
     if not models:
@@ -389,7 +413,7 @@ def get_gemini_reply(system_prompt: str, message: str) -> str:
                     base_endpoint=settings.gemini_api_base,
                     version=version,
                     model=model,
-                    system_prompt=system_prompt,
+                    system_prompt=composed_system_prompt,
                     contents=contents,
                     max_output_tokens=settings.gemini_max_output_tokens,
                 )

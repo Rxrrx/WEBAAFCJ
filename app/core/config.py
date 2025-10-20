@@ -81,7 +81,7 @@ class Settings:
     )
     gemini_max_output_tokens: int = field(
         default_factory=lambda: int(
-            os.environ.get("GEMINI_MAX_OUTPUT_TOKENS", "1024")
+            os.environ.get("GEMINI_MAX_OUTPUT_TOKENS", "2048")
         )
     )
     gemini_fallback_api_key: Optional[str] = field(
@@ -89,7 +89,7 @@ class Settings:
     )
     gemini_max_auto_continuations: int = field(
         default_factory=lambda: int(
-            os.environ.get("GEMINI_MAX_AUTO_CONTINUATIONS", "2")
+            os.environ.get("GEMINI_MAX_AUTO_CONTINUATIONS", "3")
         )
     )
     chat_system_prompt: str = field(
@@ -104,6 +104,16 @@ class Settings:
                 "pastorales. Si la consulta se aleja por completo del ámbito espiritual, "
                 "orienta de manera amable hacia un tema afín sin reprender ni inventar "
                 "información. Mantén un tono pastoral, cercano y esperanzador."
+            ),
+        )
+    )
+    chat_response_guideline: Optional[str] = field(
+        default_factory=lambda: os.environ.get(
+            "CHATBOT_RESPONSE_GUIDELINE",
+            (
+                "Responde con calidez pastoral en un máximo de cinco párrafos breves "
+                "y concisos (no más de 180-200 palabras en total), priorizando ideas "
+                "claras y evitando repeticiones extensas."
             ),
         )
     )
