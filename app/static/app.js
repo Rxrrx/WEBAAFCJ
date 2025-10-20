@@ -202,11 +202,13 @@
     const rendered = [];
     let listType = null;
     let paragraphBuffer = [];
+    let lastListItemIndex = -1;
 
     const flushList = () => {
       if (!listType) return;
       rendered.push(listType === "ol" ? "</ol>" : "</ul>");
       listType = null;
+      lastListItemIndex = -1;
     };
 
     const ensureList = (type) => {
@@ -220,6 +222,7 @@
           : '<ul class="chatbot__list">';
       rendered.push(tag);
       listType = type;
+      lastListItemIndex = -1;
     };
 
     const flushParagraph = () => {
@@ -241,6 +244,7 @@
         flushParagraph();
         ensureList("ul");
         rendered.push(`<li>${formatInlineMarkdown(bulletMatch[1])}</li>`);
+        lastListItemIndex = rendered.length - 1;
         return;
       }
 
@@ -248,6 +252,18 @@
         flushParagraph();
         ensureList("ol");
         rendered.push(`<li>${formatInlineMarkdown(orderedMatch[1])}</li>`);
+        lastListItemIndex = rendered.length - 1;
+        return;
+      }
+
+      if (listType && trimmed) {
+        if (lastListItemIndex >= 0) {
+          const continuation = formatInlineMarkdown(trimmed);
+          rendered[lastListItemIndex] = rendered[lastListItemIndex].replace(
+            /<\/li>$/,
+            ` ${continuation}</li>`
+          );
+        }
         return;
       }
 
