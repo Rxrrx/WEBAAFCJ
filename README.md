@@ -97,4 +97,4 @@ Puedes sobrescribir estos valores definiendo las variables de entorno `SUPERUSER
 - Integrar un sistema de mensajes (flash) para feedback de formularios.
 - Permitir busqueda y filtrado de documentos.
 - Migrar a un motor externo (PostgreSQL, MySQL) para entornos productivos.
-- Agregar almacenamiento externo (p. ej. S3) para manejar archivos de gran tamanio.
+- Agregar almacenamiento externo (p. ej. S3) para manejar archivos de gran tamaño.
