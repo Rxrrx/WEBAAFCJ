@@ -300,6 +300,8 @@
     const log = root.querySelector("[data-chatbot-log]");
     const status = root.querySelector("[data-chatbot-status]");
     let placeholder = log.querySelector(".chatbot__placeholder");
+    const MAX_HISTORY_ITEMS = 12;
+    const history = [];
 
     function ensurePanelOpen() {
       if (!panel) return;
@@ -346,10 +348,23 @@
       root.classList.add("chatbot--loading");
 
       try {
+        const sanitizedHistory = history
+          .slice(-MAX_HISTORY_ITEMS)
+          .map((turn) => ({
+            role: turn.role,
+            content: (turn.content || "").trim(),
+          }))
+          .filter((turn) => turn.content.length > 0);
+
+        const payload = {
+          message: raw,
+          history: sanitizedHistory,
+        };
+
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: raw }),
+          body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
@@ -359,6 +374,14 @@
         const answer = typeof data.reply === "string" ? data.reply : "";
         const bubble = appendBubble(answer || "No pude responder en este momento.", "bot");
         status.textContent = answer ? "Listo" : "Intenta nuevamente.";
+
+        history.push({ role: "user", content: raw });
+        if (answer) {
+          history.push({ role: "assistant", content: answer });
+        }
+        if (history.length > MAX_HISTORY_ITEMS) {
+          history.splice(0, history.length - MAX_HISTORY_ITEMS);
+        }
       } catch (error) {
         console.error("Error al consultar el asistente:", error);
         appendBubble(

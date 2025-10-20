@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 @dataclass
 class Settings:
-    """Centraliza configuración leída desde variables de entorno."""
+    """Centraliza configuracion leida desde variables de entorno."""
 
     app_title: str = field(default="Biblioteca de Documentos")
     templates_dir: str = field(
@@ -92,6 +92,11 @@ class Settings:
             os.environ.get("GEMINI_MAX_AUTO_CONTINUATIONS", "3")
         )
     )
+    chat_history_max_turns: int = field(
+        default_factory=lambda: int(
+            os.environ.get("CHAT_HISTORY_MAX_TURNS", "12")
+        )
+    )
     chat_system_prompt: str = field(
         default_factory=lambda: os.environ.get(
             "CHATBOT_SYSTEM_PROMPT",
@@ -114,10 +119,11 @@ class Settings:
         default_factory=lambda: os.environ.get(
             "CHATBOT_RESPONSE_GUIDELINE",
             (
-                "Responde con calidez pastoral en hasta seis párrafos breves (máximo "
-                "220 palabras). Concluye invitando explícitamente a profundizar o "
-                "continuar la conversación, proponiendo al menos una pregunta o tema "
-                "relacionado."
+                "Responde con calidez pastoral usando la extension necesaria (entre uno "
+                "y seis parrafos, hasta 220 palabras). Concluye invitando "
+                "explicitamente a profundizar o continuar la conversacion con una "
+                "pregunta o tema relacionado, pero evita extenderte si una respuesta "
+                "breve es suficiente."
             ),
         )
     )
@@ -137,7 +143,7 @@ class Settings:
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """Devuelve configuración cacheada para reutilizar en todo el proyecto."""
+    """Devuelve configuracion cacheada para reutilizar en todo el proyecto."""
     return Settings()
 
 

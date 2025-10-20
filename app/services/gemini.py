@@ -1,7 +1,7 @@
 import logging
 import re
-from dataclasses import dataclass
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -21,9 +21,11 @@ class GeminiCallResult:
     finish_reason: Optional[str]
 
 
+HistoryTurn = Dict[str, str]
+
 _CONTINUATION_PROMPT = (
-    "Continúa exactamente donde quedaste, sin repetir nada anterior. "
-    "Mantén el formato y completa la idea que estaba en curso."
+    "Continua exactamente donde quedaste, sin repetir nada anterior. "
+    "Manten el formato y completa la idea que estaba en curso."
 )
 
 _OPEN_LIST_RE = re.compile(r"(?:^|\n)(?:[-*\u2022]|(?:\d+\.))\s+[^\n]*$")
@@ -81,40 +83,85 @@ def _needs_continuation(text: str, finish_reason: Optional[str]) -> bool:
     return _looks_like_truncated_markdown(text)
 
 
-def _initial_contents(message: str) -> List[Dict[str, Any]]:
-    return [
+def _sanitize_history_entries(
+    history: Optional[Iterable[HistoryTurn]],
+) -> List[HistoryTurn]:
+    if not history:
+        return []
+
+    sanitized: List[HistoryTurn] = []
+    for turn in history:
+        if not isinstance(turn, dict):
+            continue
+        role = str(turn.get("role", "")).strip().lower()
+        content = str(turn.get("content", "")).strip()
+        if role not in {"user", "assistant"}:
+            continue
+        if not content:
+            continue
+        sanitized.append({"role": role, "content": content})
+    return sanitized
+
+
+def _history_to_contents(history: Iterable[HistoryTurn]) -> List[Dict[str, Any]]:
+    contents: List[Dict[str, Any]] = []
+    for turn in history:
+        role = "user" if turn["role"] == "user" else "model"
+        contents.append(
+            {
+                "role": role,
+                "parts": [{"text": turn["content"]}],
+            }
+        )
+    return contents
+
+
+def _initial_contents(
+    message: str, history: Iterable[HistoryTurn]
+) -> List[Dict[str, Any]]:
+    contents = _history_to_contents(history)
+    contents.append(
         {
             "role": "user",
             "parts": [{"text": message}],
         }
-    ]
+    )
+    return contents
 
 
 def _continuation_contents(
-    original_message: str, accumulated_response: str
+    history: Iterable[HistoryTurn],
+    original_message: str,
+    accumulated_response: str,
 ) -> List[Dict[str, Any]]:
-    return [
+    contents = _history_to_contents(history)
+    contents.append(
         {
             "role": "user",
             "parts": [{"text": original_message}],
-        },
+        }
+    )
+    contents.append(
         {
             "role": "model",
             "parts": [{"text": accumulated_response}],
-        },
+        }
+    )
+    contents.append(
         {
             "role": "user",
             "parts": [{"text": _CONTINUATION_PROMPT}],
-        },
-    ]
+        }
+    )
+    return contents
 
 
 class GeminiModelNotFound(Exception):
-    """Se arroja cuando el modelo solicitado no está disponible."""
+    """Se arroja cuando el modelo solicitado no esta disponible."""
 
 
 class GeminiAPIError(Exception):
-    """Se arroja ante respuestas inválidas de la API de Gemini."""
+    """Se arroja ante respuestas invalidas de la API de Gemini."""
 
 
 _ALIAS_PAIRS: Iterable[Iterable[str]] = [
@@ -159,7 +206,7 @@ DEFAULT_MODEL_ORDER: List[str] = [
 
 def _version_candidates(version_hint: Optional[str]) -> List[str]:
     """Genera el orden de versiones a probar."""
-    ordered = []
+    ordered: List[str] = []
     if version_hint:
         ordered.append(version_hint.strip())
     ordered.extend(["v1beta", "v1"])
@@ -205,7 +252,7 @@ def _auth_headers(api_key: str, *, json: bool = False) -> Dict[str, str]:
 def _available_models(
     api_key: str, base_endpoint: str, version_hint: Optional[str]
 ) -> Dict[str, str]:
-    """Lista modelos disponibles y mapea modelo -> versión a utilizar."""
+    """Lista modelos disponibles y mapea modelo -> version a utilizar."""
     available: Dict[str, str] = {}
     for version in _version_candidates(version_hint):
         url = f"{base_endpoint}/{version}/models"
@@ -215,7 +262,7 @@ def _available_models(
             )
         except requests.RequestException as exc:  # pragma: no cover (red)
             logger.warning(
-                "No se pudo listar modelos de Gemini para la versión %s: %s",
+                "No se pudo listar modelos de Gemini para la version %s: %s",
                 version,
                 exc,
             )
@@ -223,7 +270,7 @@ def _available_models(
 
         if not response.ok:
             logger.warning(
-                "ListModels %s respondió %s: %s",
+                "ListModels %s respondio %s: %s",
                 version,
                 response.status_code,
                 response.text,
@@ -318,7 +365,9 @@ def _call_gemini_raw(
             timeout=30,
         )
     except requests.RequestException as exc:  # pragma: no cover (red)
-        raise GeminiAPIError(f"Error de red comunicándose con Gemini: {exc}") from exc
+        raise GeminiAPIError(
+            f"Error de red comunicandose con Gemini: {exc}"
+        ) from exc
 
     if response.status_code == 404:
         raise GeminiModelNotFound(
@@ -368,14 +417,18 @@ def _compose_system_prompt(base_prompt: str, extra: Optional[str]) -> str:
     return f"{base_prompt}\n\n{extra}"
 
 
-def get_gemini_reply(system_prompt: str, message: str) -> str:
+def get_gemini_reply(
+    system_prompt: str,
+    message: str,
+    history: Optional[Iterable[HistoryTurn]] = None,
+) -> str:
     """Obtiene una respuesta del asistente Gemini con reintentos inteligentes."""
     settings = get_settings()
     api_key = settings.gemini_api_key
     if not api_key:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="El asistente no está disponible por falta de configuración.",
+            detail="El asistente no esta disponible por falta de configuracion.",
         )
 
     available = _available_models(
@@ -395,6 +448,12 @@ def get_gemini_reply(system_prompt: str, message: str) -> str:
             detail="No hay modelos configurados para el asistente.",
         )
 
+    sanitized_history = _sanitize_history_entries(history)
+    history_limit = max(settings.chat_history_max_turns, 0)
+    if history_limit and len(sanitized_history) > history_limit:
+        sanitized_history = sanitized_history[-history_limit:]
+    history_reference = tuple(sanitized_history)
+
     last_error: Optional[Exception] = None
     version_candidates = _version_candidates(settings.gemini_api_version_hint)
 
@@ -402,7 +461,7 @@ def get_gemini_reply(system_prompt: str, message: str) -> str:
         version = available.get(model) or next(iter(version_candidates), "v1beta")
 
         try:
-            contents = _initial_contents(message)
+            contents = _initial_contents(message, history_reference)
             chunks: List[str] = []
 
             for attempt in range(
@@ -427,9 +486,9 @@ def get_gemini_reply(system_prompt: str, message: str) -> str:
                 if attempt + 1 > settings.gemini_max_auto_continuations:
                     logger.warning(
                         (
-                            "La respuesta de Gemini se truncó repetidamente "
+                            "La respuesta de Gemini se trunco repetidamente "
                             "utilizando el modelo %s, incluso tras %s "
-                            "continuaciones automáticas."
+                            "continuaciones automaticas."
                         ),
                         model,
                         settings.gemini_max_auto_continuations,
@@ -437,13 +496,15 @@ def get_gemini_reply(system_prompt: str, message: str) -> str:
                     return accumulated.strip()
 
                 logger.debug(
-                    "Solicitud de continuación automática #%s para el modelo %s "
+                    "Solicitud de continuacion automatica #%s para el modelo %s "
                     "(finishReason=%s).",
                     attempt + 1,
                     model,
                     result.finish_reason,
                 )
-                contents = _continuation_contents(message, accumulated)
+                contents = _continuation_contents(
+                    history_reference, message, accumulated
+                )
         except GeminiModelNotFound as exc:
             available.pop(model, None)
             logger.warning("Modelo Gemini %s no disponible (%s).", model, exc)
