@@ -81,11 +81,16 @@ class Settings:
     )
     gemini_max_output_tokens: int = field(
         default_factory=lambda: int(
-            os.environ.get("GEMINI_MAX_OUTPUT_TOKENS", "800")
+            os.environ.get("GEMINI_MAX_OUTPUT_TOKENS", "1024")
         )
     )
     gemini_fallback_api_key: Optional[str] = field(
         default_factory=lambda: os.environ.get("GEMINI_FALLBACK_API_KEY")
+    )
+    gemini_max_auto_continuations: int = field(
+        default_factory=lambda: int(
+            os.environ.get("GEMINI_MAX_AUTO_CONTINUATIONS", "2")
+        )
     )
     chat_system_prompt: str = field(
         default_factory=lambda: os.environ.get(

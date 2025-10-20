@@ -1,7 +1,9 @@
 import logging
+import re
+from dataclasses import dataclass
 from collections import defaultdict
 from functools import lru_cache
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import requests
 from fastapi import HTTPException, status
@@ -9,6 +11,92 @@ from fastapi import HTTPException, status
 from app.core.config import get_settings
 
 logger = logging.getLogger("app.chatbot")
+
+
+@dataclass
+class GeminiCallResult:
+    """Representa una respuesta individual de Gemini."""
+
+    text: str
+    finish_reason: Optional[str]
+
+
+_CONTINUATION_PROMPT = (
+    "Continúa exactamente donde quedaste, sin repetir nada anterior. "
+    "Mantén el formato y completa la idea que estaba en curso."
+)
+
+_OPEN_LIST_RE = re.compile(r"(?:^|\n)(?:[-*•]|(?:\d+\.))\s+[^\n]*$")
+
+
+def _normalize_finish_reason(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    value = value.strip()
+    return value.upper() if value else None
+
+
+def _looks_like_truncated_markdown(text: str) -> bool:
+    stripped = text.rstrip()
+    if not stripped:
+        return False
+
+    if stripped.count("**") % 2:
+        return True
+    if stripped.count("`") % 2:
+        return True
+    if _OPEN_LIST_RE.search(stripped):
+        return True
+    if stripped.endswith(("-", "•", ":", ";", ",")):
+        return True
+
+    last_line = stripped.splitlines()[-1].strip()
+    if last_line and last_line[-1] not in (".", "!", "?", "…", ")", "]", '"', "”", "'"):
+        if len(last_line.split()) >= 4:
+            return True
+
+    return False
+
+
+def _needs_continuation(text: str, finish_reason: Optional[str]) -> bool:
+    normalized_reason = _normalize_finish_reason(finish_reason)
+    if normalized_reason == "MAX_TOKENS":
+        return True
+    if normalized_reason and normalized_reason not in {"STOP", "MAX_TOKENS"}:
+        return False
+
+    if len(text.strip()) < 80:
+        return False
+
+    return _looks_like_truncated_markdown(text)
+
+
+def _initial_contents(message: str) -> List[Dict[str, Any]]:
+    return [
+        {
+            "role": "user",
+            "parts": [{"text": message}],
+        }
+    ]
+
+
+def _continuation_contents(
+    original_message: str, accumulated_response: str
+) -> List[Dict[str, Any]]:
+    return [
+        {
+            "role": "user",
+            "parts": [{"text": original_message}],
+        },
+        {
+            "role": "model",
+            "parts": [{"text": accumulated_response}],
+        },
+        {
+            "role": "user",
+            "parts": [{"text": _CONTINUATION_PROMPT}],
+        },
+    ]
 
 
 class GeminiModelNotFound(Exception):
@@ -197,19 +285,14 @@ def _call_gemini_raw(
     version: str,
     model: str,
     system_prompt: str,
-    message: str,
+    contents: List[Dict[str, Any]],
     max_output_tokens: int,
-) -> str:
+) -> GeminiCallResult:
     payload = {
         "systemInstruction": {
             "parts": [{"text": system_prompt}],
         },
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": message}],
-            }
-        ],
+        "contents": contents,
         "generationConfig": {
             "maxOutputTokens": max_output_tokens,
         },
@@ -238,15 +321,31 @@ def _call_gemini_raw(
 
     data = response.json()
     candidates = data.get("candidates") or []
-    for candidate in candidates:
-        content = candidate.get("content") or {}
-        parts = content.get("parts") or []
-        for part in parts:
-            text = part.get("text")
-            if isinstance(text, str) and text.strip():
-                return text.strip()
+    if not candidates:
+        raise GeminiAPIError("La respuesta de Gemini no contiene candidatos.")
 
-    raise GeminiAPIError("La respuesta de Gemini no contiene texto utilizable.")
+    candidate = candidates[0] or {}
+    content = candidate.get("content") or {}
+    parts = content.get("parts") or []
+
+    aggregated_parts: List[str] = []
+    for part in parts:
+        text = part.get("text")
+        if isinstance(text, str):
+            aggregated_parts.append(text)
+
+    combined_text = "".join(aggregated_parts).strip()
+    if not combined_text:
+        raise GeminiAPIError(
+            "La respuesta de Gemini no contiene texto utilizable."
+        )
+
+    finish_reason = candidate.get("finishReason")
+
+    return GeminiCallResult(
+        text=combined_text,
+        finish_reason=finish_reason,
+    )
 
 
 def get_gemini_reply(system_prompt: str, message: str) -> str:
@@ -279,15 +378,48 @@ def get_gemini_reply(system_prompt: str, message: str) -> str:
         version = available.get(model) or next(iter(version_candidates), "v1beta")
 
         try:
-            return _call_gemini_raw(
-                api_key=api_key,
-                base_endpoint=settings.gemini_api_base,
-                version=version,
-                model=model,
-                system_prompt=system_prompt,
-                message=message,
-                max_output_tokens=settings.gemini_max_output_tokens,
-            )
+            contents = _initial_contents(message)
+            chunks: List[str] = []
+
+            for attempt in range(
+                settings.gemini_max_auto_continuations + 1
+            ):
+                result = _call_gemini_raw(
+                    api_key=api_key,
+                    base_endpoint=settings.gemini_api_base,
+                    version=version,
+                    model=model,
+                    system_prompt=system_prompt,
+                    contents=contents,
+                    max_output_tokens=settings.gemini_max_output_tokens,
+                )
+
+                chunks.append(result.text)
+                accumulated = "".join(chunks)
+
+                if not _needs_continuation(accumulated, result.finish_reason):
+                    return accumulated.strip()
+
+                if attempt + 1 > settings.gemini_max_auto_continuations:
+                    logger.warning(
+                        (
+                            "La respuesta de Gemini se truncó repetidamente "
+                            "utilizando el modelo %s, incluso tras %s "
+                            "continuaciones automáticas."
+                        ),
+                        model,
+                        settings.gemini_max_auto_continuations,
+                    )
+                    return accumulated.strip()
+
+                logger.debug(
+                    "Solicitud de continuación automática #%s para el modelo %s "
+                    "(finishReason=%s).",
+                    attempt + 1,
+                    model,
+                    result.finish_reason,
+                )
+                contents = _continuation_contents(message, accumulated)
         except GeminiModelNotFound as exc:
             available.pop(model, None)
             logger.warning("Modelo Gemini %s no disponible (%s).", model, exc)
