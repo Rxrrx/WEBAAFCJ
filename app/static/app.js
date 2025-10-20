@@ -341,7 +341,7 @@
         }
         const data = await response.json();
         const answer = typeof data.reply === "string" ? data.reply : "";
-        appendBubble(answer || "No pude responder en este momento.", "bot");
+        const bubble = appendBubble(answer || "No pude responder en este momento.", "bot");
         status.textContent = answer ? "Listo" : "Intenta nuevamente.";
       } catch (error) {
         console.error("Error al consultar el asistente:", error);
@@ -352,6 +352,9 @@
         status.textContent = "No se pudo completar la consulta.";
       } finally {
         root.classList.remove("chatbot--loading");
+        window.requestAnimationFrame(() => {
+          log.scrollTo({ top: log.scrollHeight, behavior: "smooth" });
+        });
       }
     }
 
