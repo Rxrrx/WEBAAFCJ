@@ -81,7 +81,7 @@ class Settings:
     )
     gemini_max_output_tokens: int = field(
         default_factory=lambda: int(
-            os.environ.get("GEMINI_MAX_OUTPUT_TOKENS", "400")
+            os.environ.get("GEMINI_MAX_OUTPUT_TOKENS", "800")
         )
     )
     gemini_fallback_api_key: Optional[str] = field(
