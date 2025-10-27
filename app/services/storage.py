@@ -147,9 +147,9 @@ class StorageService:
 
 
 @lru_cache(maxsize=1)
-def get_storage_service(settings: Optional[Settings] = None) -> StorageService:
+def get_storage_service() -> StorageService:
     """Devuelve una instancia compartida del servicio de almacenamiento."""
-    return StorageService(settings or get_settings())
+    return StorageService(get_settings())
 
 
 __all__ = [

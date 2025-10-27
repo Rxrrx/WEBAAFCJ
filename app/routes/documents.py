@@ -31,7 +31,7 @@ from app.services.storage import (
 
 router = APIRouter(tags=["documentos"])
 settings = get_settings()
-storage = get_storage_service(settings)
+storage = get_storage_service()
 
 
 def _build_content_disposition(filename: str, inline: bool = False) -> str:
