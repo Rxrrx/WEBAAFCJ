@@ -170,6 +170,65 @@
     });
   }
 
+  function initLibrarySorter(root = document) {
+    const stage = root.querySelector("[data-library-stage]");
+    const control = root.querySelector("[data-library-sort]");
+    if (!stage || !control) return;
+
+    const collections = Array.from(
+      stage.querySelectorAll("[data-doc-collection]")
+    );
+    if (!collections.length) return;
+
+    const getItems = (node) =>
+      Array.from(node.querySelectorAll("[data-doc-card]"));
+
+    const snapshots = collections.map((node) => ({
+      node,
+      adminOrder: getItems(node),
+    }));
+
+    const getTimestamp = (element) => {
+      if (!element) return 0;
+      if (element.dataset.uploadedTs) {
+        return Number(element.dataset.uploadedTs) || 0;
+      }
+      const raw = element.dataset.uploadedAt;
+      const value = raw ? Date.parse(raw) : NaN;
+      const normalized = Number.isNaN(value) ? 0 : value;
+      element.dataset.uploadedTs = String(normalized);
+      return normalized;
+    };
+
+    const reorder = (mode) => {
+      const normalized = mode || "admin";
+      stage.dataset.sort = normalized;
+      if (normalized === "admin") {
+        snapshots.forEach(({ node, adminOrder }) => {
+          adminOrder.forEach((item) => node.appendChild(item));
+        });
+        return;
+      }
+      const factor = normalized === "newest" ? -1 : 1;
+      snapshots.forEach(({ node }) => {
+        const items = getItems(node);
+        items
+          .sort((a, b) => {
+            const diff = getTimestamp(a) - getTimestamp(b);
+            if (diff === 0) return 0;
+            return diff * factor;
+          })
+          .forEach((item) => node.appendChild(item));
+      });
+    };
+
+    control.addEventListener("change", () => {
+      reorder(control.value);
+    });
+
+    reorder(control.value);
+  }
+
   function initDeletes(root = document) {
     root.querySelectorAll(DELETE_SELECTOR).forEach((form) => {
       form.addEventListener("submit", (event) => {
@@ -510,11 +569,22 @@
     };
 
     const setLoader = (isLoading) => {
+      if (!loader) return;
       loader.hidden = !isLoading;
-      list.toggleAttribute("aria-busy", isLoading);
+      loader.classList.toggle("is-visible", isLoading);
+      loader.style.display = isLoading ? "flex" : "none";
+      loader.setAttribute("aria-hidden", String(!isLoading));
+      if (isLoading) {
+        emptyState.hidden = true;
+        list.innerHTML = "";
+        meta.textContent = "";
+        list.setAttribute("aria-busy", "true");
+      } else {
+        list.removeAttribute("aria-busy");
+      }
     };
 
-    const resetEmptyState = (message) => {
+    const showEmptyState = (message) => {
       emptyState.textContent =
         message || "Selecciona una categoría para ver sus documentos.";
       emptyState.hidden = false;
@@ -562,7 +632,7 @@
     const renderDocuments = (documents) => {
       list.innerHTML = "";
       if (!documents.length) {
-        resetEmptyState("No hay documentos en este contenedor todavía.");
+        showEmptyState("No hay documentos en este contenedor todavía.");
         return;
       }
       emptyState.hidden = true;
@@ -610,8 +680,6 @@
     const fetchDocuments = async () => {
       if (!config.listUrl) return;
       setLoader(true);
-      resetEmptyState("Cargando documentos...");
-      meta.textContent = "";
       const url = new URL(config.listUrl, window.location.origin);
       if (state.subcategoryId) {
         url.searchParams.set("subcategory_id", state.subcategoryId);
@@ -637,7 +705,7 @@
         }
       } catch (error) {
         console.error("No se pudieron cargar los documentos", error);
-        resetEmptyState(
+        showEmptyState(
           error?.message || "No se pudieron cargar los documentos."
         );
       } finally {
@@ -661,6 +729,7 @@
       fetchDocuments();
     });
 
+    showEmptyState("Selecciona una categoría o subcategoría para ver sus documentos.");
     renderSubcategories(null);
     fetchDocuments();
   }
@@ -1347,6 +1416,7 @@
     initDownloads();
     initViewers();
     initLibraryViewToggle();
+    initLibrarySorter();
     initDeletes();
     initReorderBlocks();
     initDocumentOrganizer();

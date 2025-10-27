@@ -4,7 +4,12 @@
 {% block body_class %}page-library{% endblock %}
 
 {% macro document_card(doc, current_user, variant="default") -%}
-<article class="document-card{% if variant == 'compact' %} document-card--compact{% elif variant == 'row' %} document-card--row{% endif %}">
+<article
+  class="document-card{% if variant == 'compact' %} document-card--compact{% elif variant == 'row' %} document-card--row{% endif %}"
+  data-doc-card
+  data-doc-id="{{ doc.id }}"
+  data-uploaded-at="{{ doc.uploaded_at.isoformat() if doc.uploaded_at else '' }}"
+>
   <div class="document-card__type" aria-hidden="true">
     {{ "PDF" if doc.content_type == "application/pdf" else (doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type) }}
   </div>
@@ -114,26 +119,41 @@
     </nav>
   </aside>
 
-  <section class="library-stage" data-library-stage data-view="list">
+  <section class="library-stage" data-library-stage data-view="list" data-sort="admin">
     <div class="library-stage__toolbar">
-      <span class="library-stage__toolbar-label">Vista</span>
-      <div class="library-view-toggle" data-library-view-toggle role="group" aria-label="Cambiar vista de documentos">
-        <button
-          class="view-toggle-button is-active"
-          type="button"
-          data-view="list"
-          aria-pressed="true"
+      <div class="library-toolbar-group">
+        <span class="library-stage__toolbar-label">Vista</span>
+        <div class="library-view-toggle" data-library-view-toggle role="group" aria-label="Cambiar vista de documentos">
+          <button
+            class="view-toggle-button is-active"
+            type="button"
+            data-view="list"
+            aria-pressed="true"
+          >
+            Lista
+          </button>
+          <button
+            class="view-toggle-button"
+            type="button"
+            data-view="grid"
+            aria-pressed="false"
+          >
+            Tarjetas
+          </button>
+        </div>
+      </div>
+      <div class="library-toolbar-group library-toolbar-group--sort">
+        <label class="library-stage__toolbar-label" for="library-sort-control">Organizar</label>
+        <select
+          class="library-sort-select"
+          id="library-sort-control"
+          data-library-sort
         >
-          Lista
-        </button>
-        <button
-          class="view-toggle-button"
-          type="button"
-          data-view="grid"
-          aria-pressed="false"
-        >
-          Tarjetas
-        </button>
+          <option value="admin">Orden del administrador</option>
+          <option value="newest">Más nuevos primero</option>
+          <option value="oldest">Más antiguos primero</option>
+        </select>
+        <span class="library-sorter__hint">Inicialmente ves el orden configurado en Administración.</span>
       </div>
     </div>
     {% for group in category_groups %}
@@ -166,7 +186,7 @@
           <span class="library-panel__eyebrow">Colección general</span>
           <h3>Material disponible para toda la congregación</h3>
         </header>
-        <div class="library-document-list">
+        <div class="library-document-list" data-doc-collection>
           {% for doc in group.documents %}
           {{ document_card(doc, current_user, "row") }}
           {% endfor %}
@@ -190,7 +210,7 @@
               </span>
             </summary>
             {% if bundle.documents %}
-            <div class="library-document-grid library-document-grid--compact">
+            <div class="library-document-grid library-document-grid--compact" data-doc-collection>
               {% for doc in bundle.documents %}
               {{ document_card(doc, current_user, "compact") }}
               {% endfor %}
@@ -229,7 +249,7 @@
           <p>{{ uncategorized_documents|length }} recurso{{ 's' if uncategorized_documents|length != 1 }}</p>
         </div>
       </header>
-  <div class="library-document-grid">
+  <div class="library-document-grid" data-doc-collection>
     {% for doc in uncategorized_documents %}
     {{ document_card(doc, current_user, "row") }}
     {% endfor %}
