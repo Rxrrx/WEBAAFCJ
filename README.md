@@ -131,3 +131,4 @@ El panel de administración detecta automáticamente cuando `STORAGE_BACKEND=s3`
 - Permitir busqueda y filtrado de documentos.
 - Migrar a un motor externo (PostgreSQL, MySQL) para entornos productivos.
 - Agregar almacenamiento externo (p. ej. S3) para manejar archivos de gran tamaño.
+- j
