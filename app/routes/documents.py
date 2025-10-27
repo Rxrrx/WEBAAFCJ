@@ -12,7 +12,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import RedirectResponse, StreamingResponse
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 from urllib.parse import quote
 
@@ -97,16 +97,35 @@ class DirectUploadInitRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     filename: str
-    content_type: str = Field(..., alias="contentType")
-    file_size: int = Field(..., gt=0, alias="fileSize")
-    category_id: int = Field(..., alias="categoryId")
-    subcategory_id: Optional[int] = Field(None, alias="subcategoryId")
+    content_type: str = Field(
+        ...,
+        validation_alias=AliasChoices("contentType", "content_type"),
+        serialization_alias="contentType",
+    )
+    file_size: int = Field(
+        ...,
+        gt=0,
+        validation_alias=AliasChoices("fileSize", "file_size"),
+        serialization_alias="fileSize",
+    )
+    category_id: int = Field(
+        ...,
+        validation_alias=AliasChoices("categoryId", "category_id"),
+        serialization_alias="categoryId",
+    )
+    subcategory_id: Optional[int] = Field(
+        None,
+        validation_alias=AliasChoices("subcategoryId", "subcategory_id"),
+        serialization_alias="subcategoryId",
+    )
 
 
 class DirectUploadFinalizeRequest(DirectUploadInitRequest):
-    model_config = ConfigDict(populate_by_name=True)
-
-    storage_key: str = Field(..., alias="storageKey")
+    storage_key: str = Field(
+        ...,
+        validation_alias=AliasChoices("storageKey", "storage_key"),
+        serialization_alias="storageKey",
+    )
 
 
 def _fetch_document(db: Session, document_id: int) -> models.Document:
