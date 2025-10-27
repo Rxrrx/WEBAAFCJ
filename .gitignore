@@ -1,0 +1,33 @@
+# Environments y secretos
+.env
+.env.*
+*.env
+
+# Archivos de claves/certificados
+*.pem
+*.key
+*.crt
+
+# Artefactos Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+build/
+dist/
+*.egg-info/
+
+# Directorios de IDE/OS
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store
+
+# Archivos temporales
+*.log
+*.tmp

@@ -15,7 +15,10 @@
       <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
     <script defer src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   </head>
-  <body class="{% block body_class %}{% endblock %}">
+  <body
+    class="{% block body_class %}{% endblock %}"
+    data-direct-upload="{{ 'true' if direct_upload_enabled else 'false' }}"
+  >
     <div class="site-shell">
       <div class="site-decor" aria-hidden="true">
         <span class="decor-layer decor-layer--one"></span>

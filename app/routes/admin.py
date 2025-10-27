@@ -65,6 +65,12 @@ async def admin_upload(
             allowed_types=settings.allowed_upload_types,
             categories=categories,
             category_options=category_options,
+            direct_upload_config={
+                "enabled": settings.use_s3_storage,
+                "initUrl": "/upload/direct/init",
+                "finalizeUrl": "/upload/direct/finalize",
+                "maxFileSize": settings.max_file_size_mb,
+            },
         ),
     )
 

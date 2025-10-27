@@ -56,6 +56,39 @@ Al iniciar la aplicacion se garantiza la presencia de un superusuario:
 
 Puedes sobrescribir estos valores definiendo las variables de entorno `SUPERUSER_EMAIL`, `SUPERUSER_PASSWORD` y `SUPERUSER_NAME` antes de levantar la aplicacion. El secreto de sesion se controla mediante `APP_SESSION_SECRET` (valor por defecto `dev-secret-key-change-me`).
 
+## Subidas directas para archivos grandes
+
+Las funciones serverless de Vercel aceptan cuerpos de peticion pequeños (~4.5 MB). Para permitir PDF de hasta 30 MB, el backend ahora puede usar cargas directas hacia un bucket tipo S3 y solo guardar metadatos en la base de datos.
+
+1. Crea un bucket (S3, MinIO, Cloudflare R2, etc.) accesible mediante la API S3.
+2. Configura CORS para permitir `PUT`, `GET` y `HEAD` desde tu dominio (`https://webaafcj.vercel.app`). Ejemplo rápido:
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://webaafcj.vercel.app"],
+       "AllowedMethods": ["GET", "PUT", "HEAD"],
+       "AllowedHeaders": ["*"]
+     }
+   ]
+   ```
+
+3. Exporta las variables de entorno:
+
+   | Variable | Descripción |
+   | --- | --- |
+   | `STORAGE_BACKEND` | Define el modo de almacenamiento. Usa `s3` en producción para habilitar las cargas directas. |
+   | `S3_BUCKET_NAME` | Nombre del bucket. |
+   | `S3_REGION_NAME` | Región del bucket (p. ej. `us-east-1`). |
+   | `S3_ENDPOINT_URL` | (Opcional) Endpoint personalizado si usas un proveedor compatible. |
+   | `S3_ACCESS_KEY_ID` y `S3_SECRET_ACCESS_KEY` | Credenciales con permisos `s3:GetObject`, `s3:PutObject` y `s3:HeadObject`. |
+   | `S3_PRESIGN_EXPIRATION_SECONDS` | (Opcional, por defecto 900) Vigencia de las URLs firmadas. |
+   | `MAX_FILE_SIZE_MB` | Límite lógico mostrado en la UI (30 por defecto para PDFs). |
+
+4. Despliega con esas variables en Vercel (`vercel env`). En local, puedes omitirlas para seguir guardando los archivos dentro de SQLite.
+
+El panel de administración detecta automáticamente cuando `STORAGE_BACKEND=s3` y realiza la carga en tres pasos: solicita una URL firmada, envía el archivo directo al bucket y finalmente registra los metadatos en la base. De esta forma las peticiones hacia el servidor nunca superan el límite de Vercel, pero los usuarios igualmente descargan los archivos mediante enlaces firmados.
+
 ## Puesta en marcha con Docker
 
 1. Construir la imagen:

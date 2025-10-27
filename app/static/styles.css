@@ -1028,6 +1028,20 @@ strong {
   color: var(--color-muted);
 }
 
+.form-hint--status {
+  display: block;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.form-hint--status[data-state="success"] {
+  color: var(--color-emerald);
+}
+
+.form-hint--status[data-state="error"] {
+  color: var(--color-crimson);
+}
+
 .form-messages {
   list-style: none;
   margin: 0 0 1.2rem;

@@ -47,6 +47,8 @@ def template_context(
         "request": request,
         "current_user": current_user,
         "current_year": datetime.utcnow().year,
+        "direct_upload_enabled": settings.use_s3_storage,
+        "storage_backend": settings.storage_backend,
     }
     context.update(extra)
     return context

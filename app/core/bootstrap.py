@@ -33,6 +33,26 @@ def _ensure_table_columns() -> None:
                     "ALTER TABLE documents "
                     "ADD COLUMN subcategory_id INTEGER REFERENCES subcategories(id)"
                 )
+            if "file_size_bytes" not in document_columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE documents "
+                    "ADD COLUMN file_size_bytes INTEGER"
+                )
+            if "storage_backend" not in document_columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE documents "
+                    "ADD COLUMN storage_backend VARCHAR(32)"
+                )
+            if "storage_key" not in document_columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE documents "
+                    "ADD COLUMN storage_key VARCHAR(512)"
+                )
+            if "storage_url" not in document_columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE documents "
+                    "ADD COLUMN storage_url VARCHAR(2048)"
+                )
 
             category_columns = [
                 row[1]
@@ -73,6 +93,22 @@ def _ensure_table_columns() -> None:
             connection.exec_driver_sql(
                 "ALTER TABLE subcategories "
                 "ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0 NOT NULL"
+            )
+            connection.exec_driver_sql(
+                "ALTER TABLE documents "
+                "ADD COLUMN IF NOT EXISTS file_size_bytes INTEGER"
+            )
+            connection.exec_driver_sql(
+                "ALTER TABLE documents "
+                "ADD COLUMN IF NOT EXISTS storage_backend VARCHAR(32)"
+            )
+            connection.exec_driver_sql(
+                "ALTER TABLE documents "
+                "ADD COLUMN IF NOT EXISTS storage_key VARCHAR(512)"
+            )
+            connection.exec_driver_sql(
+                "ALTER TABLE documents "
+                "ADD COLUMN IF NOT EXISTS storage_url VARCHAR(2048)"
             )
 
         # Normaliza valores de orden cuando el campo es nuevo o está sin asignar.

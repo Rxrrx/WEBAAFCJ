@@ -35,7 +35,13 @@
     </header>
 
     {% if categories %}
-    <form class="form-grid" action="/upload" method="post" enctype="multipart/form-data">
+    <form
+      class="form-grid"
+      action="/upload"
+      method="post"
+      enctype="multipart/form-data"
+      data-direct-upload='{{ direct_upload_config|tojson }}'
+    >
       <div class="form-field">
         <label class="form-label" for="category_id">Categoría</label>
         <select
@@ -81,6 +87,9 @@
       </div>
 
       <button type="submit" class="button button--primary">Subir documento</button>
+      {% if direct_upload_config.enabled %}
+      <p class="form-hint form-hint--status" data-upload-status hidden></p>
+      {% endif %}
     </form>
     {% else %}
     <div class="empty-card">

@@ -97,6 +97,11 @@
   }
 
   function initDownloads(root = document) {
+    const shouldIntercept = document.body?.dataset.directUpload !== "true";
+    if (!shouldIntercept) {
+      return;
+    }
+
     root.querySelectorAll(DOWNLOAD_SELECTOR).forEach((element) => {
       element.addEventListener("click", (event) => {
         event.preventDefault();
@@ -691,12 +696,141 @@
     showIfLoaded();
   }
 
+  function initDirectUpload(root = document) {
+    const form = root.querySelector("form[data-direct-upload]");
+    if (!form) return;
+
+    let config;
+    try {
+      config = JSON.parse(form.dataset.directUpload || "{}");
+    } catch (error) {
+      console.warn("Configuración de subida directa inválida", error);
+      return;
+    }
+
+    if (!config || !config.enabled) {
+      return;
+    }
+
+    const statusNode = form.querySelector("[data-upload-status]");
+    const submitButton = form.querySelector("button[type='submit']");
+    const fileInput = form.querySelector("input[type='file'][name='file']");
+
+    const showStatus = (message, type = "info") => {
+      if (!statusNode) return;
+      statusNode.hidden = false;
+      statusNode.dataset.state = type;
+      statusNode.textContent = message;
+    };
+
+    const resetStatus = () => {
+      if (statusNode) {
+        statusNode.hidden = true;
+        statusNode.textContent = "";
+      }
+    };
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      resetStatus();
+
+      const categoryField = form.querySelector("select[name='category_id']");
+      if (!categoryField || !categoryField.value) {
+        showStatus("Selecciona una categoría antes de continuar.", "error");
+        categoryField?.focus();
+        return;
+      }
+
+      const file = fileInput?.files?.[0];
+      if (!file) {
+        showStatus("Selecciona un archivo para subir.", "error");
+        fileInput?.focus();
+        return;
+      }
+
+      if (config.maxFileSize && file.size > config.maxFileSize * 1024 * 1024) {
+        showStatus(
+          `El archivo supera el límite de ${config.maxFileSize} MB configurado.`,
+          "error",
+        );
+        return;
+      }
+
+      const subcategoryField = form.querySelector("select[name='subcategory_id']");
+      const payload = {
+        filename: file.name,
+        contentType: file.type || "application/octet-stream",
+        fileSize: file.size,
+        categoryId: parseInt(categoryField.value, 10),
+        subcategoryId: subcategoryField?.value ? parseInt(subcategoryField.value, 10) : null,
+      };
+
+      form.setAttribute("aria-busy", "true");
+      submitButton?.setAttribute("disabled", "disabled");
+      showStatus("Preparando carga segura...", "info");
+
+      try {
+        const initResponse = await fetch(config.initUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          credentials: "same-origin",
+        });
+
+        if (!initResponse.ok) {
+          throw new Error(`Error al iniciar la carga (${initResponse.status})`);
+        }
+
+        const initData = await initResponse.json();
+        showStatus("Subiendo al almacenamiento seguro...", "info");
+
+        const uploadResponse = await fetch(initData.uploadUrl, {
+          method: "PUT",
+          headers: initData.headers || { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Error al subir al almacenamiento (${uploadResponse.status})`);
+        }
+
+        showStatus("Confirmando y guardando metadatos...", "info");
+
+        const finalizeResponse = await fetch(config.finalizeUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ ...payload, storageKey: initData.storageKey }),
+        });
+
+        if (!finalizeResponse.ok) {
+          throw new Error(`No se pudo finalizar la carga (${finalizeResponse.status})`);
+        }
+
+        showStatus("Documento guardado correctamente. Recargando...", "success");
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 600);
+      } catch (error) {
+        console.error("Carga directa falló", error);
+        showStatus(
+          error?.message || "No se pudo completar la carga. Intenta nuevamente.",
+          "error",
+        );
+      } finally {
+        form.removeAttribute("aria-busy");
+        submitButton?.removeAttribute("disabled");
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     initDownloads();
     initViewers();
     initToggles();
     initDeletes();
     initChatbot();
+    initDirectUpload();
     initCategorySubcategoryPicker();
     initLibraryNavigator();
     initLogoMark();

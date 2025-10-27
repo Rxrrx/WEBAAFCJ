@@ -63,7 +63,30 @@ class Settings:
         ]
     )
     max_file_size_mb: int = field(
-        default_factory=lambda: int(os.environ.get("MAX_FILE_SIZE_MB", "25"))
+        default_factory=lambda: int(os.environ.get("MAX_FILE_SIZE_MB", "30"))
+    )
+    storage_backend: str = field(
+        default_factory=lambda: os.environ.get("STORAGE_BACKEND", "database")
+    )
+    s3_bucket_name: Optional[str] = field(
+        default_factory=lambda: os.environ.get("S3_BUCKET_NAME")
+    )
+    s3_region_name: Optional[str] = field(
+        default_factory=lambda: os.environ.get("S3_REGION_NAME")
+    )
+    s3_endpoint_url: Optional[str] = field(
+        default_factory=lambda: os.environ.get("S3_ENDPOINT_URL")
+    )
+    s3_access_key_id: Optional[str] = field(
+        default_factory=lambda: os.environ.get("S3_ACCESS_KEY_ID")
+    )
+    s3_secret_access_key: Optional[str] = field(
+        default_factory=lambda: os.environ.get("S3_SECRET_ACCESS_KEY")
+    )
+    s3_presign_expiration_seconds: int = field(
+        default_factory=lambda: int(
+            os.environ.get("S3_PRESIGN_EXPIRATION_SECONDS", "900")
+        )
     )
     gemini_api_base: str = field(
         default_factory=lambda: os.environ.get(
@@ -130,6 +153,14 @@ class Settings:
     mapbox_token: Optional[str] = field(
         default_factory=lambda: os.environ.get("MAPBOX_TOKEN")
     )
+
+    @property
+    def use_s3_storage(self) -> bool:
+        """Indica si se debe usar S3 como backend de archivos."""
+        return (
+            self.storage_backend.lower() == "s3"
+            and bool(self.s3_bucket_name)
+        )
 
     @property
     def gemini_api_key(self) -> Optional[str]:
