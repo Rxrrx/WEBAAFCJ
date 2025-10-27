@@ -12,6 +12,7 @@ from app.dependencies import (
     redirect_response,
     template_context,
 )
+from app.services.orderings import document_ordering_clause, sort_documents
 
 router = APIRouter(tags=["páginas"])
 settings = get_settings()
@@ -130,22 +131,16 @@ async def library_view(
             category.subcategories,
             key=lambda s: (s.display_order, s.name.lower()),
         ):
-            docs = sorted(
-                subcategory.documents,
-                key=lambda d: d.uploaded_at,
-                reverse=True,
-            )
+            docs = sort_documents(subcategory.documents)
             subcollections.append(
                 {"subcategory": subcategory, "documents": docs}
             )
-        standalone_docs = sorted(
+        standalone_docs = sort_documents(
             [
                 document
                 for document in category.documents
                 if document.subcategory_id is None
-            ],
-            key=lambda d: d.uploaded_at,
-            reverse=True,
+            ]
         )
         total_docs = len(standalone_docs) + sum(
             len(item["documents"]) for item in subcollections
@@ -166,7 +161,7 @@ async def library_view(
             selectinload(models.Document.subcategory),
         )
         .filter(models.Document.category_id.is_(None))
-        .order_by(models.Document.uploaded_at.desc())
+        .order_by(*document_ordering_clause())
         .all()
     )
     return templates.TemplateResponse(

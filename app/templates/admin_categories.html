@@ -54,19 +54,48 @@
   </section>
 
   <section class="admin-card admin-card--list">
-    <header class="admin-card__header">
-      <h2>Categorías existentes</h2>
-      <p>Gestiona o elimina categorías y crea subcategorías específicas para cada ministerio.</p>
+    <header class="admin-card__header admin-card__header--split">
+      <div>
+        <h2>Categorías existentes</h2>
+        <p>Gestiona o elimina categorías y crea subcategorías específicas para cada ministerio.</p>
+      </div>
+      <div class="reorder-toolbar" data-reorder-toolbar>
+        <button
+          class="button button--ghost"
+          type="button"
+          data-reorder-toggle
+          aria-expanded="false"
+        >
+          Organizar orden
+        </button>
+        <div class="reorder-toolbar__actions" data-reorder-actions hidden>
+          <button class="button button--primary" type="button" data-reorder-save>
+            Guardar orden
+          </button>
+          <button class="button button--ghost" type="button" data-reorder-cancel>
+            Cancelar
+          </button>
+        </div>
+        <p class="reorder-toolbar__status" data-reorder-status aria-live="polite"></p>
+      </div>
     </header>
 
     {% if categories %}
-    <ul class="category-deck">
+    <div
+      class="reorder-surface"
+      data-reorder
+      data-reorder-endpoint="/admin/categories/reorder"
+      data-reorder-message="Orden de categorías actualizado."
+    >
+    <ul class="category-deck" data-reorder-list>
       {% for category in categories %}
       {% set subcategories = category.subcategories | sort(attribute='display_order') %}
-      <li class="category-chip">
+      <li class="category-chip" data-reorder-item data-id="{{ category.id }}">
         <div class="category-chip__badge" aria-hidden="true">
           {{ category.name[0] }}
         </div>
+        <span class="category-chip__handle" aria-hidden="true"></span>
+        <span class="sr-only">Arrastra la categoría {{ category.name }} para reordenarla.</span>
         <div class="category-chip__body">
           <header class="category-chip__header">
             <div>
@@ -154,6 +183,10 @@
       </li>
       {% endfor %}
     </ul>
+    <p class="reorder-hint" data-reorder-hint hidden>
+      Arrastra y suelta las tarjetas para definir el orden. Luego guarda los cambios.
+    </p>
+    </div>
     {% else %}
     <p class="empty empty--center">
       Todavía no se han creado categorías.

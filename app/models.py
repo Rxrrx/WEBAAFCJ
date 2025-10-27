@@ -57,6 +57,7 @@ class Document(Base):
     storage_key = Column(String(512), nullable=True, unique=True)
     storage_url = Column(String(2048), nullable=True)
     uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    display_order = Column(Integer, nullable=True, index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     subcategory_id = Column(Integer, ForeignKey("subcategories.id"), nullable=True)
     category = relationship("Category", back_populates="documents")

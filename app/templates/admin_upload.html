@@ -162,5 +162,73 @@
     </p>
     {% endif %}
   </section>
+
+  <section
+    class="admin-card admin-card--organizer"
+    data-document-organizer
+    data-organizer-config='{{ document_organizer_config|tojson }}'
+    data-organizer-categories='{{ category_options|tojson }}'
+  >
+    <header class="admin-card__header">
+      <h2>Organiza el orden de los documentos</h2>
+      <p>Selecciona una categoría o subcategoría y arrastra los archivos para definir qué se muestra primero.</p>
+    </header>
+    <div class="organizer-grid">
+      <div class="organizer-grid__controls">
+        <div class="form-field">
+          <label class="form-label" for="organizer-category">Categoría</label>
+          <select class="form-input" id="organizer-category" data-organizer-category>
+            <option value="">Documentos sin categoría</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <p class="form-hint">Si no eliges ninguna categoría podrás ordenar los archivos sin clasificar.</p>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="organizer-subcategory">Subcategoría (opcional)</label>
+          <select
+            class="form-input"
+            id="organizer-subcategory"
+            data-organizer-subcategory
+            disabled
+          >
+            <option value="">Selecciona una subcategoría</option>
+          </select>
+          <p class="form-hint">Cuando seleccionas una subcategoría, solo se mostrarán los archivos asociados a ella.</p>
+        </div>
+      </div>
+      <div
+        class="organizer-list"
+        data-reorder
+        data-reorder-endpoint="/admin/documents/reorder"
+        data-reorder-message="Orden de documentos actualizado."
+        data-reorder-field="documents"
+      >
+        <div class="organizer-list__loader" data-organizer-loader hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <p>Cargando documentos...</p>
+        </div>
+        <div class="organizer-list__meta" data-organizer-meta></div>
+        <div class="organizer-list__empty" data-organizer-empty>
+          Selecciona una categoría o subcategoría para ver sus documentos.
+        </div>
+        <ul class="organizer-items" data-reorder-list></ul>
+        <p class="reorder-hint" data-reorder-hint hidden>
+          Arrastra los elementos usando el control lateral y luego guarda los cambios.
+        </p>
+        <div class="reorder-toolbar" data-reorder-toolbar>
+          <button class="button button--ghost" type="button" data-reorder-toggle disabled aria-expanded="false">
+            Editar orden
+          </button>
+          <div class="reorder-toolbar__actions" data-reorder-actions hidden>
+            <button class="button button--primary" type="button" data-reorder-save>Guardar</button>
+            <button class="button button--ghost" type="button" data-reorder-cancel>Cancelar</button>
+          </div>
+          <p class="reorder-toolbar__status" data-reorder-status aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 {% endblock %}

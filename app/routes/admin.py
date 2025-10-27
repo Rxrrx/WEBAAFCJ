@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from pydantic import BaseModel, conlist
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
@@ -14,9 +15,18 @@ from app.dependencies import (
     require_superuser,
     template_context,
 )
+from app.services.orderings import document_ordering_clause, sort_documents
 
 router = APIRouter(tags=["administración"])
 settings = get_settings()
+
+
+class CategoryReorderPayload(BaseModel):
+    items: conlist(int, min_length=1)
+
+
+class DocumentReorderPayload(BaseModel):
+    documents: conlist(int, min_length=1)
 
 
 @router.get("/admin/upload")
@@ -71,6 +81,10 @@ async def admin_upload(
                 "finalizeUrl": "/upload/direct/finalize",
                 "maxFileSize": settings.max_file_size_mb,
             },
+            document_organizer_config={
+                "listUrl": "/admin/documents",
+                "reorderUrl": "/admin/documents/reorder",
+            },
         ),
     )
 
@@ -117,6 +131,43 @@ async def admin_categories_view(
     return _render_admin_categories(
         request, db=db, current_user=current_user, message=message, errors=errors
     )
+
+
+@router.post("/admin/categories/reorder")
+async def admin_categories_reorder(
+    payload: CategoryReorderPayload,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_superuser),
+):
+    total_categories = db.query(func.count(models.Category.id)).scalar() or 0
+    if len(payload.items) != total_categories:
+        raise HTTPException(
+            status_code=400,
+            detail="Debes incluir todas las categor��as en la operaci��n de reordenamiento.",
+        )
+
+    if len(payload.items) != len(set(payload.items)):
+        raise HTTPException(
+            status_code=400,
+            detail="La lista de categor��as contiene duplicados.",
+        )
+
+    categories = (
+        db.query(models.Category)
+        .filter(models.Category.id.in_(payload.items))
+        .all()
+    )
+    if len(categories) != len(payload.items):
+        raise HTTPException(
+            status_code=404,
+            detail="Una o mǭs categor��as no existen.",
+        )
+
+    order_map = {category_id: index + 1 for index, category_id in enumerate(payload.items)}
+    for category in categories:
+        category.display_order = order_map[category.id]
+    db.commit()
+    return {"updated": len(payload.items)}
 
 
 @router.post("/admin/categories")
@@ -408,3 +459,122 @@ async def admin_subcategory_delete(
     return redirect_response(
         f"{request.url_for('admin_categories_view')}?msg=Subcategoría%20eliminada"
     )
+@router.get("/admin/documents")
+async def admin_documents_list(
+    category_id: Optional[int] = Query(None),
+    subcategory_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_superuser),
+):
+    query = (
+        db.query(models.Document)
+        .options(
+            selectinload(models.Document.category),
+            selectinload(models.Document.subcategory),
+        )
+    )
+
+    scope_category = None
+    scope_subcategory = None
+    scope_label = "Documentos sin categor��a"
+
+    if subcategory_id is not None:
+        subcategory = (
+            db.query(models.SubCategory)
+            .options(selectinload(models.SubCategory.category))
+            .filter(models.SubCategory.id == subcategory_id)
+            .first()
+        )
+        if subcategory is None:
+            raise HTTPException(status_code=404, detail="La subcategor��a solicitada no existe.")
+        scope_category = subcategory.category
+        scope_subcategory = subcategory
+        scope_label = f"{subcategory.name} ({subcategory.category.name})"
+        query = query.filter(models.Document.subcategory_id == subcategory.id)
+    elif category_id is not None:
+        category = (
+            db.query(models.Category)
+            .filter(models.Category.id == category_id)
+            .first()
+        )
+        if category is None:
+            raise HTTPException(status_code=404, detail="La categor��a solicitada no existe.")
+        scope_category = category
+        scope_label = category.name
+        query = query.filter(
+            models.Document.category_id == category.id,
+            models.Document.subcategory_id.is_(None),
+        )
+    else:
+        query = query.filter(models.Document.category_id.is_(None))
+        scope_label = "Documentos sin categor��a"
+
+    documents = query.order_by(*document_ordering_clause()).all()
+
+    return {
+        "scope": {
+            "categoryId": scope_category.id if scope_category else None,
+            "subcategoryId": scope_subcategory.id if scope_subcategory else None,
+            "label": scope_label,
+            "count": len(documents),
+        },
+        "documents": [
+            {
+                "id": document.id,
+                "filename": document.filename,
+                "uploadedAt": document.uploaded_at.isoformat()
+                if document.uploaded_at
+                else None,
+                "categoryName": document.category.name if document.category else None,
+                "subcategoryName": document.subcategory.name
+                if document.subcategory
+                else None,
+                "displayOrder": document.display_order,
+            }
+            for document in documents
+        ],
+    }
+
+
+@router.post("/admin/documents/reorder")
+async def admin_documents_reorder(
+    payload: DocumentReorderPayload,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_superuser),
+):
+    if len(payload.documents) != len(set(payload.documents)):
+        raise HTTPException(
+            status_code=400,
+            detail="La lista de documentos contiene duplicados.",
+        )
+
+    documents = (
+        db.query(models.Document)
+        .filter(models.Document.id.in_(payload.documents))
+        .all()
+    )
+    if len(documents) != len(payload.documents):
+        raise HTTPException(
+            status_code=404,
+            detail="Uno o mǭs documentos no existen.",
+        )
+
+    first_document = documents[0]
+    scope_category = first_document.category_id
+    scope_subcategory = first_document.subcategory_id
+
+    for document in documents:
+        if (
+            document.category_id != scope_category
+            or document.subcategory_id != scope_subcategory
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Todos los documentos deben pertenecer al mismo contenedor para poder ordenarlos.",
+            )
+
+    order_map = {doc_id: index + 1 for index, doc_id in enumerate(payload.documents)}
+    for document in documents:
+        document.display_order = order_map[document.id]
+    db.commit()
+    return {"updated": len(payload.documents)}

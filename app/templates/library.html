@@ -114,7 +114,28 @@
     </nav>
   </aside>
 
-  <section class="library-stage" data-library-stage>
+  <section class="library-stage" data-library-stage data-view="list">
+    <div class="library-stage__toolbar">
+      <span class="library-stage__toolbar-label">Vista</span>
+      <div class="library-view-toggle" data-library-view-toggle role="group" aria-label="Cambiar vista de documentos">
+        <button
+          class="view-toggle-button is-active"
+          type="button"
+          data-view="list"
+          aria-pressed="true"
+        >
+          Lista
+        </button>
+        <button
+          class="view-toggle-button"
+          type="button"
+          data-view="grid"
+          aria-pressed="false"
+        >
+          Tarjetas
+        </button>
+      </div>
+    </div>
     {% for group in category_groups %}
     <article
       class="library-panel{{ ' is-active' if loop.first }}"

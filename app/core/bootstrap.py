@@ -53,6 +53,11 @@ def _ensure_table_columns() -> None:
                     "ALTER TABLE documents "
                     "ADD COLUMN storage_url VARCHAR(2048)"
                 )
+            if "display_order" not in document_columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE documents "
+                    "ADD COLUMN display_order INTEGER"
+                )
 
             category_columns = [
                 row[1]
@@ -109,6 +114,10 @@ def _ensure_table_columns() -> None:
             connection.exec_driver_sql(
                 "ALTER TABLE documents "
                 "ADD COLUMN IF NOT EXISTS storage_url VARCHAR(2048)"
+            )
+            connection.exec_driver_sql(
+                "ALTER TABLE documents "
+                "ADD COLUMN IF NOT EXISTS display_order INTEGER"
             )
 
         # Normaliza valores de orden cuando el campo es nuevo o está sin asignar.

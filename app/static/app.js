@@ -1,9 +1,12 @@
 (function () {
   const DOWNLOAD_SELECTOR = "[data-download-url]";
   const VIEW_SELECTOR = "[data-view-url]";
-  const TOGGLE_SELECTOR = ".view-toggle";
+  const LIBRARY_VIEW_SELECTOR = "[data-library-view-toggle]";
   const DELETE_SELECTOR =
     "form[data-action='delete-doc'], form[data-action='delete-category'], form[data-action='delete-subcategory']";
+  const STORAGE_KEYS = {
+    libraryView: "library:view",
+  };
 
   let modal;
   let iframe;
@@ -121,28 +124,48 @@
     });
   }
 
-  function initToggles(root = document) {
-    root.querySelectorAll(TOGGLE_SELECTOR).forEach((toggle) => {
-      const container = document.querySelector(".library-workspace");
-      if (!container) return;
+  function initLibraryViewToggle(root = document) {
+    const stage = root.querySelector("[data-library-stage]");
+    const toggle = root.querySelector(LIBRARY_VIEW_SELECTOR);
+    if (!stage || !toggle) return;
 
-      toggle.querySelectorAll(".toggle-button").forEach((button) => {
-        button.addEventListener("click", () => {
-          const target = button.dataset.target;
+    const buttons = Array.from(toggle.querySelectorAll("[data-view]"));
+    if (!buttons.length) return;
 
-          toggle.querySelectorAll(".toggle-button").forEach((btn) => {
-            const isActive = btn === button;
-            btn.classList.toggle("is-active", isActive);
-            btn.setAttribute("aria-pressed", String(isActive));
-          });
+    const applyView = (view, persist = false) => {
+      stage.dataset.view = view;
+      buttons.forEach((button) => {
+        const isActive = button.dataset.view === view;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+      if (persist) {
+        try {
+          window.localStorage.setItem(STORAGE_KEYS.libraryView, view);
+        } catch (error) {
+          console.warn("No se pudo guardar la vista preferida", error);
+        }
+      }
+    };
 
-          container.querySelectorAll(".view-panel").forEach((panel) => {
-            const isTarget = panel.dataset.panel === target;
-            panel.toggleAttribute("hidden", !isTarget);
-          });
+    const storedView = (() => {
+      try {
+        return window.localStorage.getItem(STORAGE_KEYS.libraryView);
+      } catch {
+        return null;
+      }
+    })();
+    if (storedView && storedView !== stage.dataset.view) {
+      applyView(storedView);
+    }
 
-          container.setAttribute("data-active", target);
-        });
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const view = button.dataset.view || "list";
+        if (view === stage.dataset.view) {
+          return;
+        }
+        applyView(view, true);
       });
     });
   }
@@ -168,6 +191,480 @@
     });
   }
 
+  class ReorderBlock {
+    constructor(container) {
+      this.container = container;
+      this.list = container.querySelector("[data-reorder-list]");
+      this.toggle = container.querySelector("[data-reorder-toggle]");
+      this.actions = container.querySelector("[data-reorder-actions]");
+      this.saveButton = container.querySelector("[data-reorder-save]");
+      this.cancelButton = container.querySelector("[data-reorder-cancel]");
+      this.statusNode = container.querySelector("[data-reorder-status]");
+      this.hint = container.querySelector("[data-reorder-hint]");
+      this.endpoint =
+        container.dataset.reorderEndpoint || container.dataset.reorderUrl || "";
+      this.fieldKey = container.dataset.reorderField || "items";
+      this.message =
+        container.dataset.reorderMessage || "Orden actualizado correctamente.";
+      this.active = false;
+      this.initialOrder = [];
+      this.draggedItem = null;
+      this.container.dataset.reorderState = "idle";
+      this.container.dataset.reorderDirty = "false";
+
+      this.toggle?.addEventListener("click", () => {
+        if (this.active) {
+          this.deactivate();
+        } else {
+          this.activate();
+        }
+      });
+      this.saveButton?.addEventListener("click", () => this.persist());
+      this.cancelButton?.addEventListener("click", () => this.cancel());
+      this.container.addEventListener("reorder:refresh", () =>
+        this.refreshAfterContentChange()
+      );
+
+      this.refresh();
+      this.container.__reorderInstance = this;
+    }
+
+    getItems() {
+      if (!this.list) return [];
+      return Array.from(this.list.querySelectorAll("[data-reorder-item]"));
+    }
+
+    activate() {
+      if (this.active || !this.list || !this.getItems().length) return;
+      this.active = true;
+      this.initialOrder = this.snapshot();
+      this.container.dataset.reorderState = "active";
+      this.toggle?.setAttribute("aria-expanded", "true");
+      this.toggle?.classList.add("is-active");
+      this.actions?.removeAttribute("hidden");
+      this.hint?.removeAttribute("hidden");
+      this.getItems().forEach((item) => {
+        item.setAttribute("draggable", "true");
+        item.classList.add("is-reorderable");
+      });
+      this.bindDrag();
+      this.setDirty(false);
+    }
+
+    deactivate(silent = false) {
+      if (!this.active && !silent) return;
+      this.active = false;
+      this.container.dataset.reorderState = "idle";
+      this.toggle?.setAttribute("aria-expanded", "false");
+      this.toggle?.classList.remove("is-active");
+      this.actions?.setAttribute("hidden", "hidden");
+      this.hint?.setAttribute("hidden", "hidden");
+      this.unbindDrag();
+      this.getItems().forEach((item) => {
+        item.removeAttribute("draggable");
+        item.classList.remove("is-reorderable", "is-dragging");
+      });
+      if (!silent) {
+        this.initialOrder = [];
+      }
+      this.setDirty(false);
+    }
+
+    cancel() {
+      if (!this.initialOrder.length || !this.list) {
+        this.deactivate();
+        return;
+      }
+      const lookup = new Map(
+        this.getItems().map((item) => [parseInt(item.dataset.id, 10), item])
+      );
+      this.initialOrder.forEach((id) => {
+        const node = lookup.get(id);
+        if (node) {
+          this.list.appendChild(node);
+        }
+      });
+      this.deactivate();
+    }
+
+    snapshot() {
+      return this.getItems()
+        .map((item) => parseInt(item.dataset.id, 10))
+        .filter((id) => Number.isInteger(id));
+    }
+
+    setDirty(isDirty) {
+      this.container.dataset.reorderDirty = String(isDirty);
+      if (isDirty) {
+        this.saveButton?.removeAttribute("disabled");
+      } else {
+        this.saveButton?.setAttribute("disabled", "disabled");
+      }
+    }
+
+    markDirty() {
+      const current = JSON.stringify(this.snapshot());
+      const initial = JSON.stringify(this.initialOrder);
+      this.setDirty(current !== initial);
+    }
+
+    bindDrag() {
+      if (!this.list) return;
+      this.onDragStart = (event) => {
+        if (!this.active) return;
+        const item = event.target.closest("[data-reorder-item]");
+        if (!item) return;
+        this.draggedItem = item;
+        item.classList.add("is-dragging");
+        if (event.dataTransfer) {
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", item.dataset.id || "");
+        }
+      };
+      this.onDragOver = (event) => {
+        if (!this.active || !this.draggedItem) return;
+        event.preventDefault();
+        const target = event.target.closest("[data-reorder-item]");
+        if (!target || target === this.draggedItem) return;
+        const rect = target.getBoundingClientRect();
+        const shouldInsertAfter = event.clientY > rect.top + rect.height / 2;
+        if (shouldInsertAfter) {
+          target.after(this.draggedItem);
+        } else {
+          target.before(this.draggedItem);
+        }
+        this.markDirty();
+      };
+      this.onDragEnd = () => {
+        if (this.draggedItem) {
+          this.draggedItem.classList.remove("is-dragging");
+        }
+        this.draggedItem = null;
+      };
+      this.list.addEventListener("dragstart", this.onDragStart);
+      this.list.addEventListener("dragover", this.onDragOver);
+      this.list.addEventListener("dragend", this.onDragEnd);
+      this.list.addEventListener("drop", (event) => event.preventDefault());
+    }
+
+    unbindDrag() {
+      if (!this.list) return;
+      if (this.onDragStart) {
+        this.list.removeEventListener("dragstart", this.onDragStart);
+      }
+      if (this.onDragOver) {
+        this.list.removeEventListener("dragover", this.onDragOver);
+      }
+      if (this.onDragEnd) {
+        this.list.removeEventListener("dragend", this.onDragEnd);
+      }
+      this.onDragStart = null;
+      this.onDragOver = null;
+      this.onDragEnd = null;
+      this.draggedItem = null;
+    }
+
+    async persist() {
+      if (!this.endpoint || this.container.dataset.reorderDirty !== "true") {
+        return;
+      }
+      const payload = this.buildPayload();
+      this.showStatus("Guardando cambios...", "info");
+      this.setBusy(true);
+      try {
+        const response = await fetch(this.endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        this.initialOrder = this.snapshot();
+        this.setDirty(false);
+        this.showStatus(this.message, "success");
+        window.setTimeout(() => this.showStatus("", "idle"), 1800);
+      } catch (error) {
+        console.error("No se pudo guardar el orden", error);
+        this.showStatus(
+          error?.message || "No se pudo guardar el nuevo orden.",
+          "error"
+        );
+      } finally {
+        this.setBusy(false);
+      }
+    }
+
+    showStatus(message, state = "info") {
+      if (!this.statusNode) return;
+      if (!message) {
+        this.statusNode.hidden = true;
+        this.statusNode.textContent = "";
+        this.statusNode.removeAttribute("data-state");
+        return;
+      }
+      this.statusNode.hidden = false;
+      this.statusNode.dataset.state = state;
+      this.statusNode.textContent = message;
+    }
+
+    setBusy(isBusy) {
+      if (isBusy) {
+        this.container.setAttribute("aria-busy", "true");
+      } else {
+        this.container.removeAttribute("aria-busy");
+      }
+    }
+
+    buildPayload() {
+      const ids = this.snapshot();
+      const payload = { [this.fieldKey]: ids };
+      Object.entries(this.container.dataset).forEach(([key, value]) => {
+        if (!key.startsWith("scope") || value === "") return;
+        const normalized = key.replace(/^scope/, "");
+        if (!normalized) return;
+        const finalKey =
+          normalized.charAt(0).toLowerCase() + normalized.slice(1);
+        const numeric = Number(value);
+        payload[finalKey] = Number.isNaN(numeric) ? value : numeric;
+      });
+      return payload;
+    }
+
+    refresh() {
+      const hasItems = this.getItems().length > 0;
+      if (!hasItems) {
+        this.toggle?.setAttribute("disabled", "disabled");
+        this.deactivate(true);
+      } else {
+        this.toggle?.removeAttribute("disabled");
+      }
+      this.setDirty(false);
+    }
+
+    refreshAfterContentChange() {
+      this.initialOrder = this.snapshot();
+      this.deactivate(true);
+      this.refresh();
+      this.showStatus("", "idle");
+    }
+  }
+
+  function initReorderBlocks(root = document) {
+    root.querySelectorAll("[data-reorder]").forEach((container) => {
+      if (container.__reorderInstance) {
+        container.__reorderInstance.refresh();
+        return;
+      }
+      new ReorderBlock(container);
+    });
+  }
+
+  function initDocumentOrganizer(root = document) {
+    const card = root.querySelector("[data-document-organizer]");
+    if (!card) return;
+
+    const config = (() => {
+      try {
+        return JSON.parse(card.dataset.organizerConfig || "{}");
+      } catch {
+        return {};
+      }
+    })();
+    const categoryMap = (() => {
+      try {
+        return JSON.parse(card.dataset.organizerCategories || "[]");
+      } catch {
+        return [];
+      }
+    })();
+
+    const categorySelect = card.querySelector("[data-organizer-category]");
+    const subcategorySelect = card.querySelector("[data-organizer-subcategory]");
+    const emptyState = card.querySelector("[data-organizer-empty]");
+    const loader = card.querySelector("[data-organizer-loader]");
+    const meta = card.querySelector("[data-organizer-meta]");
+    const list = card.querySelector("[data-reorder-list]");
+    const reorderContainer = card.querySelector("[data-reorder]");
+    if (
+      !categorySelect ||
+      !subcategorySelect ||
+      !emptyState ||
+      !loader ||
+      !list ||
+      !reorderContainer
+    ) {
+      return;
+    }
+
+    const subcategoryLookup = new Map(
+      categoryMap.map((category) => [
+        String(category.id),
+        category.subcategories || [],
+      ])
+    );
+    const state = {
+      categoryId: null,
+      subcategoryId: null,
+    };
+
+    const setLoader = (isLoading) => {
+      loader.hidden = !isLoading;
+      list.toggleAttribute("aria-busy", isLoading);
+    };
+
+    const resetEmptyState = (message) => {
+      emptyState.textContent =
+        message || "Selecciona una categoría para ver sus documentos.";
+      emptyState.hidden = false;
+      list.innerHTML = "";
+    };
+
+    const renderSubcategories = (categoryId) => {
+      const options = categoryId
+        ? subcategoryLookup.get(String(categoryId)) || []
+        : [];
+      subcategorySelect.innerHTML = "";
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = options.length
+        ? "Documentos generales de la categoría"
+        : "Sin subcategorías disponibles";
+      placeholder.selected = true;
+      subcategorySelect.appendChild(placeholder);
+      if (!categoryId || !options.length) {
+        subcategorySelect.disabled = true;
+        return;
+      }
+      subcategorySelect.disabled = false;
+      options.forEach((option) => {
+        const node = document.createElement("option");
+        node.value = option.id;
+        node.textContent = option.name;
+        subcategorySelect.appendChild(node);
+      });
+    };
+
+    const applyScopeDataset = (scope = {}) => {
+      if (scope.categoryId != null) {
+        reorderContainer.dataset.scopeCategoryId = scope.categoryId;
+      } else {
+        delete reorderContainer.dataset.scopeCategoryId;
+      }
+      if (scope.subcategoryId != null) {
+        reorderContainer.dataset.scopeSubcategoryId = scope.subcategoryId;
+      } else {
+        delete reorderContainer.dataset.scopeSubcategoryId;
+      }
+    };
+
+    const renderDocuments = (documents) => {
+      list.innerHTML = "";
+      if (!documents.length) {
+        resetEmptyState("No hay documentos en este contenedor todavía.");
+        return;
+      }
+      emptyState.hidden = true;
+      const fragment = document.createDocumentFragment();
+      documents.forEach((doc) => {
+        const item = document.createElement("li");
+        item.className = "organizer-item";
+        item.dataset.id = doc.id;
+        item.setAttribute("data-reorder-item", "true");
+
+        const title = escapeHtml(doc.filename || "Documento sin título");
+        const timestamp = doc.uploadedAt
+          ? formatDateTime(doc.uploadedAt)
+          : "";
+        const metaParts = [];
+        if (timestamp) {
+          metaParts.push(`Publicado ${timestamp}`);
+        }
+        const badges = [];
+        if (doc.categoryName) {
+          badges.push(
+            `<span class="badge">${escapeHtml(doc.categoryName)}</span>`
+          );
+        }
+        if (doc.subcategoryName) {
+          badges.push(
+            `<span class="badge badge--soft">${escapeHtml(doc.subcategoryName)}</span>`
+          );
+        }
+
+        item.innerHTML = `
+          <div class="organizer-item__body">
+            <p class="organizer-item__title">${title}</p>
+            <p class="organizer-item__meta">${metaParts.join(" · ")}</p>
+          </div>
+          <div class="organizer-item__badges">${badges.join("")}</div>
+          <span class="organizer-item__handle" aria-hidden="true"></span>
+        `;
+        fragment.appendChild(item);
+      });
+      list.appendChild(fragment);
+      emptyState.hidden = true;
+    };
+
+    const fetchDocuments = async () => {
+      if (!config.listUrl) return;
+      setLoader(true);
+      resetEmptyState("Cargando documentos...");
+      meta.textContent = "";
+      const url = new URL(config.listUrl, window.location.origin);
+      if (state.subcategoryId) {
+        url.searchParams.set("subcategory_id", state.subcategoryId);
+      } else if (state.categoryId) {
+        url.searchParams.set("category_id", state.categoryId);
+      }
+      try {
+        const response = await fetch(url.toString(), {
+          headers: { Accept: "application/json" },
+          credentials: "same-origin",
+        });
+        if (!response.ok) {
+          throw new Error(`Error al obtener documentos (${response.status})`);
+        }
+        const payload = await response.json();
+        applyScopeDataset(payload.scope);
+        renderDocuments(payload.documents || []);
+        if (payload.scope) {
+          const total = payload.scope.count || 0;
+          meta.textContent = `${payload.scope.label} · ${total} documento${
+            total === 1 ? "" : "s"
+          }`;
+        }
+      } catch (error) {
+        console.error("No se pudieron cargar los documentos", error);
+        resetEmptyState(
+          error?.message || "No se pudieron cargar los documentos."
+        );
+      } finally {
+        setLoader(false);
+        const instance = reorderContainer.__reorderInstance;
+        instance?.refreshAfterContentChange();
+      }
+    };
+
+    categorySelect.addEventListener("change", () => {
+      const raw = categorySelect.value;
+      state.categoryId = raw ? parseInt(raw, 10) : null;
+      state.subcategoryId = null;
+      renderSubcategories(state.categoryId);
+      fetchDocuments();
+    });
+
+    subcategorySelect.addEventListener("change", () => {
+      const raw = subcategorySelect.value;
+      state.subcategoryId = raw ? parseInt(raw, 10) : null;
+      fetchDocuments();
+    });
+
+    renderSubcategories(null);
+    fetchDocuments();
+  }
+
   const HTML_ESCAPE = {
     "&": "&amp;",
     "<": "&lt;",
@@ -175,9 +672,31 @@
     '"': "&quot;",
     "'": "&#39;",
   };
+  const DATE_FORMAT =
+    typeof Intl !== "undefined"
+      ? new Intl.DateTimeFormat("es-CL", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
 
   function escapeHtml(value) {
     return value.replace(/[&<>"']/g, (char) => HTML_ESCAPE[char] || char);
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "";
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    if (DATE_FORMAT) {
+      return DATE_FORMAT.format(date);
+    }
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   }
 
   function formatInlineMarkdown(value) {
@@ -827,8 +1346,10 @@
   document.addEventListener("DOMContentLoaded", () => {
     initDownloads();
     initViewers();
-    initToggles();
+    initLibraryViewToggle();
     initDeletes();
+    initReorderBlocks();
+    initDocumentOrganizer();
     initChatbot();
     initDirectUpload();
     initCategorySubcategoryPicker();
