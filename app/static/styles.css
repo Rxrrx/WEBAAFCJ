@@ -400,13 +400,17 @@ strong {
 }
 
 .hero--home {
+  padding-top: clamp(1.8rem, 4vw, 3.2rem);
   padding-bottom: 0;
 }
 
 .hero__legend {
   width: min(1320px, 94vw);
-  margin: 0 auto 1.6rem;
+  margin: 0 auto 1.2rem;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
   justify-content: center;
 }
 
@@ -422,6 +426,11 @@ strong {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
+}
+
+.hero__badge--motto {
+  background: linear-gradient(120deg, rgba(27, 109, 193, 0.16), rgba(45, 143, 244, 0.08));
+  color: var(--color-azure);
 }
 
 .hero__badge-divider {
