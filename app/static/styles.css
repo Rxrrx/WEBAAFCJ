@@ -643,6 +643,24 @@ strong {
   color: var(--color-muted);
 }
 
+/* Make 'Ver categoría' buttons inside pathway cards a uniform size and centered */
+.pathway-card .button {
+  min-width: 220px;
+  height: 48px;
+  padding: 0 1.25rem; /* horizontal padding kept for label spacing */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center; /* center inside grid cell */
+}
+
+@media (max-width: 480px) {
+  .pathway-card .button {
+    min-width: 160px;
+    height: 44px;
+  }
+}
+
 .sermon-card {
   padding: 1.8rem 2.2rem;
   border-radius: var(--radius-md);
