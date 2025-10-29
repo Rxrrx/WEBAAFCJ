@@ -209,9 +209,9 @@
               </span>
             </summary>
             {% if bundle.documents %}
-            <div class="library-document-grid library-document-grid--compact" data-doc-collection>
+            <div class="library-document-list" data-doc-collection>
               {% for doc in bundle.documents %}
-              {{ document_card(doc, current_user, "compact") }}
+              {{ document_card(doc, current_user, "row") }}
               {% endfor %}
             </div>
             {% else %}
