@@ -602,16 +602,20 @@ strong {
   display: grid;
   gap: 1.4rem;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  /* ensure each grid row's tracks can stretch so cards in the same row match height */
+  grid-auto-rows: 1fr;
 }
 
 .pathway-card {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
   padding: 1.6rem;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(27, 109, 193, 0.12);
   box-shadow: 0 16px 32px rgba(13, 59, 102, 0.1);
+  /* allow card to stretch to match the grid row height */
   min-height: 100%;
 }
 
@@ -651,7 +655,9 @@ strong {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  justify-self: center; /* center inside grid cell */
+  /* when pathway-card is flex-direction: column, push button to bottom */
+  margin-top: auto;
+  align-self: center;
 }
 
 @media (max-width: 480px) {
