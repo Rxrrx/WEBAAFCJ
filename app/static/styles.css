@@ -839,6 +839,11 @@ strong {
   font-weight: 700;
   display: grid;
   place-items: center;
+  font-size: 0.85rem;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .document-card__body {

@@ -137,8 +137,9 @@
   <ul class="document-feed">
     {% for doc in documents %}
     <li class="document-card document-card--compact">
+      {%- set _ext = (doc.filename.split('.')[-1].upper() if '.' in doc.filename else (doc.content_type.split('/')[-1].upper() if '/' in doc.content_type else doc.content_type)) -%}
       <div class="document-card__type" aria-hidden="true">
-        {{ "PDF" if doc.content_type == "application/pdf" else "DOC" }}
+        {{ _ext if _ext in ['PDF','PPT','PPTX','DOC','DOCX','TXT'] else _ext[:6] }}
       </div>
       <div class="document-card__body">
         <h3 class="document-card__title">{{ doc.filename }}</h3>
