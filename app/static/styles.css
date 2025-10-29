@@ -2033,7 +2033,34 @@ strong {
 
 .site-footer__brand strong {
   font-family: "Montserrat", sans-serif;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.site-footer__brand p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* Contact block placed between brand and extras */
+.site-footer__contact {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  margin-left: 1.5rem;
+}
+
+.site-footer__contact strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.site-footer__contact .site-footer__contact-email {
+  margin: 0;
+  font-size: 0.85rem;
+  /* use the same color as the footer text (do not style as a link) */
+  color: inherit;
 }
 
 .site-footer__extras {
@@ -2041,7 +2068,7 @@ strong {
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .site-footer__link {

@@ -57,7 +57,7 @@ async def read_home(
         db.query(models.Category)
         .options(selectinload(models.Category.subcategories))
         .order_by(models.Category.display_order.asc(), models.Category.name.asc())
-        .limit(6)
+        .limit(8)
         .all()
     )
     featured_category_cards: List[Dict[str, object]] = []
