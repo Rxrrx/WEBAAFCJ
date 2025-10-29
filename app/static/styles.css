@@ -814,10 +814,18 @@ strong {
 }
 
 .document-card--compact {
+  /* Compact cards need a more robust layout so
+     buttons never collide with metadata on narrow widths. */
   padding: 0.85rem 1.1rem;
-  gap: 1rem;
+  gap: 0.75rem;
   box-shadow: 0 8px 18px rgba(13, 59, 102, 0.06);
   background: rgba(255, 255, 255, 0.92);
+  /* Use a two‑column grid where the type badge stays on the left,
+     text on the right, and actions span full width below. */
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-auto-rows: auto;
+  align-items: start;
 }
 
 .document-card--row {
@@ -896,6 +904,12 @@ strong {
   width: 56px;
   height: 56px;
   border-radius: 14px;
+  grid-column: 1;
+  grid-row: 1 / span 2; /* icon occupies first column along title+meta */
+}
+
+.document-card--compact .document-card__body {
+  grid-column: 2;
 }
 
 .document-card--compact .document-card__title {
@@ -905,6 +919,9 @@ strong {
 
 .document-card--compact .document-card__actions {
   gap: 0.45rem;
+  /* Ensure actions always sit below content and span full width */
+  grid-column: 1 / -1;
+  justify-content: flex-start;
 }
 
 .document-card--compact .button {
