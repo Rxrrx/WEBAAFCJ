@@ -163,16 +163,15 @@
         >
           Descargar
         </a>
-        {% if doc.content_type == "application/pdf" %}
+        {# keep layout consistent: show 'Abrir' for all types (PDF -> viewer, others -> download) #}
         <a
           class="button button--outline"
-          href="/documents/{{ doc.id }}/view"
-          data-view-url="/documents/{{ doc.id }}/view"
+          href="{% if doc.content_type == 'application/pdf' %}/documents/{{ doc.id }}/view{% else %}/documents/{{ doc.id }}/download{% endif %}"
+          {% if doc.content_type == 'application/pdf' %}data-view-url="/documents/{{ doc.id }}/view"{% endif %}
           data-filename="{{ doc.filename }}"
         >
           Abrir
         </a>
-        {% endif %}
         {% if current_user and current_user.is_superuser %}
         <form
           class="action-inline-form"
