@@ -1574,7 +1574,9 @@ strong {
 }
 
 .library-document-grid--compact {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* Force two columns for compact grids (subcategories) on desktop/tablet
+     so cards appear 2 per row like the PDF layout the user expects. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .library-document-list {
@@ -1655,6 +1657,10 @@ strong {
 
   .library-document-grid {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  /* On very small screens, compact grids should be a single column */
+  .library-document-grid--compact {
+    grid-template-columns: 1fr;
   }
 }
 
