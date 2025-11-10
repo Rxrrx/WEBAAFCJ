@@ -262,7 +262,9 @@
         button.hidden = true;
         return;
       }
-      const extraReplies = block.querySelectorAll(".reply").length;
+      // Count only the replies that are hidden in the collapsible block.
+      // Our markup uses `.wall-reply` for each reply element.
+      const extraReplies = block.querySelectorAll(".wall-reply").length;
       const total = 1 + extraReplies; // first reply is always visible
       const updateLabel = () => {
         const expanded = button.getAttribute("data-expanded") === "true";

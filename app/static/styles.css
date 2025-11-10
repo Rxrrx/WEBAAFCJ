@@ -2789,11 +2789,12 @@ strong {
 
 .wall-post__actions { display: inline-flex; align-items: center; gap: .75rem; }
 
-.wall-post__content { 
-  color: var(--color-stone); 
-  margin: .25rem 0 .6rem; 
-  white-space: normal; /* let text use full card width */
-  overflow-wrap: anywhere; 
+.wall-post__content {
+  color: var(--color-stone);
+  margin: .25rem 0 .6rem;
+  /* Preserve user line breaks while keeping responsive wrapping */
+  white-space: pre-line;
+  overflow-wrap: anywhere;
   word-break: normal;
 }
 
