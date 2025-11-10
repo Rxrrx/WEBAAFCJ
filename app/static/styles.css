@@ -2685,6 +2685,12 @@ strong {
   text-align: center;
 }
 
+/* Intro inside card */
+.wall-intro { margin: .2rem 0 1.2rem; }
+.wall-intro__title { font-size: clamp(1.8rem, 3.8vw, 2.4rem); margin: 0 0 .4rem; color: var(--color-royal); }
+.wall-intro__lead { color: var(--color-stone); max-width: 84ch; }
+.wall-intro__divider { margin: 1rem 0 1.2rem; border: 0; height: 1px; background: rgba(13,59,102,0.12); }
+
 .section-title {
   margin: 1rem 0 1.2rem;
   font-size: clamp(1.6rem, 3vw, 2rem);

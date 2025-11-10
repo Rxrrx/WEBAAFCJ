@@ -2,21 +2,22 @@
 
 {% block surface_class %}surface-home{% endblock %}
 
-{% block masthead %}
-<section class="page-hero wall-hero">
-  <div class="hero__legend">
-    <h1 class="wall-hero__title">Muro de la Iglesia</h1>
-    <p class="wall-hero__lead">
-      Este espacio es para la comunidad: comparte <strong>preguntas biblicas</strong>,
-      <strong>peticiones de oracion</strong>, palabras de animo o necesidades practicas.
-      Todos pueden leer; para publicar o responder, inicia sesion. Mantengamos un tono
-      respetuoso, evitando datos sensibles y cuidando la dignidad de cada persona.
-    </p>
-  </div>
-</section>
-{% endblock %}
+{% block masthead %}{% endblock %}
 
 {% block content %}
+<header class="wall-intro">
+  <h1 class="wall-intro__title">Muro de la Iglesia</h1>
+  <p class="wall-intro__lead">
+    Este espacio es para la comunidad: comparte <strong>preguntas biblicas</strong>,
+    <strong>peticiones de oracion</strong>, palabras de animo o necesidades practicas.
+    Todos pueden leer; para publicar o responder, inicia sesion. Mantengamos un tono
+    respetuoso, evitando datos sensibles y cuidando la dignidad de cada persona.
+  </p>
+  <hr class="wall-intro__divider" />
+  {% if not current_user %}
+  <p class="sr-only">Inicia sesion para participar</p>
+  {% endif %}
+</header>
 <div class="wall-composer">
   {% if errors %}
   <ul class="form-messages form-messages--error" role="alert">
