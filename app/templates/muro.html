@@ -97,21 +97,23 @@
           <span class="wall-post__time">{{ post.created_at.strftime('%d %b %Y, %H:%M') }}</span>
         </div>
       </div>
-      {% set kind = (post.kind or '') %}
-      {% set kind_label = {
-        'pregunta': 'Pregunta',
-        'oracion': 'Peticion',
-        'anuncio': 'Anuncio',
-        'testimonio': 'Testimonio'
-      }[kind] if kind in ['pregunta','oracion','anuncio','testimonio'] else None %}
-      {% if kind_label %}
-      <span class="post-chip post-chip--{{ kind }}" aria-label="Tipo de publicacion">{{ kind_label }}</span>
-      {% endif %}
-      {% if current_user and (current_user.id == post.user_id or current_user.is_superuser) %}
-      <form method="post" action="/muro/post/{{ post.id }}/delete" class="site-inline-form" data-action="delete-post" data-name="publicacion">
-        <button type="submit" class="link-danger">Eliminar</button>
-      </form>
-      {% endif %}
+      <div class="wall-post__actions">
+        {% set kind = (post.kind or '') %}
+        {% set kind_label = {
+          'pregunta': 'Pregunta',
+          'oracion': 'Animo / Oracion',
+          'anuncio': 'Anuncio',
+          'testimonio': 'Testimonio'
+        }[kind] if kind in ['pregunta','oracion','anuncio','testimonio'] else None %}
+        {% if kind_label %}
+        <span class="post-chip post-chip--{{ kind }}" aria-label="Tipo de publicacion">{{ kind_label }}</span>
+        {% endif %}
+        {% if current_user and (current_user.id == post.user_id or current_user.is_superuser) %}
+        <form method="post" action="/muro/post/{{ post.id }}/delete" class="site-inline-form" data-action="delete-post" data-name="publicacion">
+          <button type="submit" class="link-danger">Eliminar</button>
+        </form>
+        {% endif %}
+      </div>
     </header>
     <div class="wall-post__content">{{ post.content }}</div>
 
@@ -145,7 +147,7 @@
     {% if current_user %}
     <form method="post" action="/muro/post/{{ post.id }}/reply" class="wall-reply-form">
       <label class="sr-only" for="reply-{{ post.id }}">Agregar respuesta</label>
-      <textarea class="form-input" id="reply-{{ post.id }}" name="content" rows="2" maxlength="4000" placeholder="Escribe una respuesta..." required></textarea>
+      <textarea class="form-input" id="reply-{{ post.id }}" name="content" rows="2" maxlength="4000" placeholder="Escribe una respuesta con respeto..." required></textarea>
       <div class="wall-reply-form__actions">
         <button class="button button--outline" type="submit">Responder</button>
       </div>

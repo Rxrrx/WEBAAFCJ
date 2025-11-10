@@ -2761,11 +2761,11 @@ strong {
 }
 
 .wall-post {
-  border-radius: var(--radius-md);
+  border-radius: 22px;
   background: #fff;
   border: 1px solid rgba(13,59,102,0.10);
-  box-shadow: 0 16px 36px rgba(13,59,102,0.12);
-  padding: 1rem 1.1rem;
+  box-shadow: 0 18px 40px rgba(13,59,102,0.12);
+  padding: 1.15rem 1.25rem;
 }
 
 .wall-post__head {
@@ -2780,6 +2780,8 @@ strong {
 .wall-post__meta { display: grid; line-height: 1.2; }
 .wall-post__author { color: var(--color-royal); }
 .wall-post__time { font-size: .9rem; color: var(--color-muted); }
+
+.wall-post__actions { display: inline-flex; align-items: center; gap: .75rem; }
 
 .wall-post__content { color: var(--color-stone); margin: .25rem 0 .6rem; white-space: pre-wrap; }
 
