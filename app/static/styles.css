@@ -2789,7 +2789,13 @@ strong {
 
 .wall-post__actions { display: inline-flex; align-items: center; gap: .75rem; }
 
-.wall-post__content { color: var(--color-stone); margin: .25rem 0 .6rem; white-space: pre-wrap; }
+.wall-post__content { 
+  color: var(--color-stone); 
+  margin: .25rem 0 .6rem; 
+  white-space: normal; /* let text use full card width */
+  overflow-wrap: anywhere; 
+  word-break: normal;
+}
 
 .wall-post__replies { margin-top: .4rem; }
 .wall-reply { padding: .7rem .9rem; border-left: 3px solid rgba(27,109,193,0.18); background: rgba(27,109,193,0.05); border-radius: 10px; }
