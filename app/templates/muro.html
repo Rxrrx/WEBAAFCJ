@@ -3,22 +3,21 @@
 {% block surface_class %}surface-home{% endblock %}
 
 {% block masthead %}
-<section class="page-hero">
+<section class="page-hero wall-hero">
   <div class="hero__legend">
-    <span class="hero__badge hero__badge--motto">Muro de la congregacion</span>
-    <h1>Comparte, pregunta y ora en comunidad</h1>
-    <p style="max-width: 72ch; text-align: center">
-      Este espacio esta pensado para que los hermanos publiquen
-      preguntas biblicas, peticiones de oracion, testimonios breves y avisos de servicio.
-      Todos pueden leer; para publicar o responder necesitas iniciar sesion.
-      Procuremos edificar con respeto, claridad y amor fraternal.
+    <h1 class="wall-hero__title">Muro de la Iglesia</h1>
+    <p class="wall-hero__lead">
+      Este espacio es para la comunidad: comparte <strong>preguntas biblicas</strong>,
+      <strong>peticiones de oracion</strong>, palabras de animo o necesidades practicas.
+      Todos pueden leer; para publicar o responder, inicia sesion. Mantengamos un tono
+      respetuoso, evitando datos sensibles y cuidando la dignidad de cada persona.
     </p>
   </div>
 </section>
 {% endblock %}
 
 {% block content %}
-<div class="form-area" style="margin-bottom: 1.5rem">
+<div class="wall-composer">
   {% if errors %}
   <ul class="form-messages form-messages--error" role="alert">
     {% for message in errors %}<li>{{ message }}</li>{% endfor %}
@@ -26,71 +25,87 @@
   {% endif %}
 
   {% if current_user %}
-  <form method="post" action="/muro/create" class="form-grid">
-    <div class="form-field">
-      <label class="form-label" for="post-content">Escribe tu mensaje</label>
+  <form method="post" action="/muro/create" class="wall-composer__form">
+    <div class="wall-composer__controls">
+      <select class="form-input wall-composer__select" name="kind" aria-label="Tipo de publicacion">
+        <option value="" selected>Selecciona tipo</option>
+        <option value="pregunta">Pregunta</option>
+        <option value="oracion">Peticion de oracion</option>
+        <option value="anuncio">Anuncio</option>
+        <option value="testimonio">Testimonio</option>
+      </select>
+    </div>
+    <div class="wall-composer__field">
+      <label class="sr-only" for="post-content">Escribe tu mensaje</label>
       <textarea
-        class="form-input"
+        class="form-input wall-composer__textarea"
         id="post-content"
         name="content"
         rows="3"
         maxlength="4000"
-        placeholder="Ej.: Paz de Cristo, quisiera pedir oracion por..."
+        placeholder="Escribe tu mensaje con respeto y claridad..."
         required
       >{{ (draft.content if draft else '') | default('') }}</textarea>
-      <small class="form-hint">Hasta 4000 caracteres. Evita datos sensibles.</small>
     </div>
-    <div>
+    <div class="wall-composer__actions">
       <button class="button button--primary" type="submit">Publicar</button>
     </div>
   </form>
   {% else %}
-  <div class="callout" style="padding: 1rem; border-radius: 12px; background: rgba(27,109,193,0.08); border: 1px solid rgba(27,109,193,0.2)">
-    <p>
-      Para publicar o responder debes <a href="/login?next=/muro">iniciar sesion</a>.
-      Aun no tienes cuenta? <a href="/register">Registrate aqui</a>.
-    </p>
+  <div class="wall-cta">
+    <div class="wall-cta__copy">
+      <h3>Participa del muro</h3>
+      <p>Inicia sesion para publicar una pregunta o peticion y responder a otros hermanos.</p>
+    </div>
+    <div class="wall-cta__actions">
+      <a class="button button--outline" href="/login?next=/muro">Iniciar sesion</a>
+      <a class="button button--primary" href="/register">Crear cuenta</a>
+    </div>
   </div>
   {% endif %}
 </div>
 
-<ul class="document-feed" data-wall>
+<h2 class="section-title">Publicaciones recientes</h2>
+
+<ul class="wall-feed" data-wall>
   {% for post in posts %}
-  <li class="sermon-card" data-post>
-    <div class="sermon-card__head">
-      <div>
-        <strong>{{ post.user.full_name }}</strong>
-        <div class="sermon-card__date">{{ post.created_at.strftime('%d %b %Y, %H:%M') }}</div>
+  <li class="wall-post" data-post>
+    <header class="wall-post__head">
+      <div class="wall-post__id">
+        <span class="avatar-ring avatar-ring--sm"><span>{{ post.user.full_name[:1]|upper }}</span></span>
+        <div class="wall-post__meta">
+          <strong class="wall-post__author">{{ post.user.full_name }}</strong>
+          <span class="wall-post__time">{{ post.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+        </div>
       </div>
       {% if current_user and (current_user.id == post.user_id or current_user.is_superuser) %}
       <form method="post" action="/muro/post/{{ post.id }}/delete" class="site-inline-form" data-action="delete-post" data-name="publicacion">
         <button type="submit" class="link-danger">Eliminar</button>
       </form>
       {% endif %}
-    </div>
-    <p class="sermon-card__lead">{{ post.content }}</p>
+    </header>
+    <div class="wall-post__content">{{ post.content }}</div>
 
     {% set replies = post.replies or [] %}
     {% if replies|length > 0 %}
-    <div class="replies" data-replies-block>
-      <div class="reply" style="padding: 0.75rem 1rem; border-left: 3px solid rgba(27,109,193,0.35); background: rgba(27,109,193,0.06); border-radius: 8px;">
+    <div class="wall-post__replies" data-replies-block>
+      <div class="wall-reply wall-reply--first">
         <strong>{{ replies[0].user.full_name }}</strong>
-        <span class="sermon-card__date"> &middot; {{ replies[0].created_at.strftime('%d %b %Y, %H:%M') }}</span>
-        <p style="margin: 0.4rem 0 0">{{ replies[0].content }}</p>
+        <span class="wall-post__time">&middot; {{ replies[0].created_at.strftime('%d %b %Y, %H:%M') }}</span>
+        <p>{{ replies[0].content }}</p>
       </div>
-
       {% if replies|length > 1 %}
-      <div class="more-replies" data-replies hidden>
+      <div class="wall-reply-list" data-replies hidden>
         {% for reply in replies[1:] %}
-        <div class="reply" style="margin-top: 0.6rem; padding: 0.75rem 1rem; border-left: 3px solid rgba(27,109,193,0.18); background: rgba(27,109,193,0.04); border-radius: 8px;">
+        <div class="wall-reply">
           <strong>{{ reply.user.full_name }}</strong>
-          <span class="sermon-card__date"> &middot; {{ reply.created_at.strftime('%d %b %Y, %H:%M') }}</span>
-          <p style="margin: 0.4rem 0 0">{{ reply.content }}</p>
+          <span class="wall-post__time">&middot; {{ reply.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+          <p>{{ reply.content }}</p>
         </div>
         {% endfor %}
       </div>
-      <div style="margin-top: 0.6rem;">
-        <button class="button button--soft" type="button" data-toggle-replies data-expanded="false">
+      <div class="wall-post__more">
+        <button class="button button--soft wall-replies-toggle" type="button" data-toggle-replies data-expanded="false">
           Ver todas las respuestas ({{ replies|length }})
         </button>
       </div>
@@ -99,23 +114,20 @@
     {% endif %}
 
     {% if current_user %}
-    <form method="post" action="/muro/post/{{ post.id }}/reply" class="form-grid" style="margin-top: 0.9rem">
-      <div class="form-field">
-        <label class="form-label" for="reply-{{ post.id }}">Agregar respuesta</label>
-        <textarea class="form-input" id="reply-{{ post.id }}" name="content" rows="2" maxlength="4000" placeholder="Escribe una respuesta..." required></textarea>
-      </div>
-      <div>
+    <form method="post" action="/muro/post/{{ post.id }}/reply" class="wall-reply-form">
+      <label class="sr-only" for="reply-{{ post.id }}">Agregar respuesta</label>
+      <textarea class="form-input" id="reply-{{ post.id }}" name="content" rows="2" maxlength="4000" placeholder="Escribe una respuesta..." required></textarea>
+      <div class="wall-reply-form__actions">
         <button class="button button--outline" type="submit">Responder</button>
       </div>
     </form>
     {% endif %}
   </li>
   {% else %}
-  <li class="sermon-card">
-    <p class="sermon-card__lead">Aun no hay publicaciones. Se el primero en escribir y animar a la iglesia.</p>
+  <li class="wall-post">
+    <div class="wall-post__content">Aun no hay publicaciones. Se el primero en escribir y animar a la iglesia.</div>
   </li>
   {% endfor %}
 </ul>
 
 {% endblock %}
-

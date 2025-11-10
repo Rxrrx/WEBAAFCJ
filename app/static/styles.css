@@ -2674,3 +2674,104 @@ strong {
     width: 100%;
   }
 }
+
+/* --- Wall (Muro) styles --- */
+.wall-hero .wall-hero__title {
+  font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+}
+
+.wall-hero .wall-hero__lead {
+  max-width: 78ch;
+  text-align: center;
+}
+
+.section-title {
+  margin: 1rem 0 1.2rem;
+  font-size: clamp(1.6rem, 3vw, 2rem);
+}
+
+.wall-cta {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.1rem 1.2rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(27,109,193,0.10), rgba(27,109,193,0.05));
+  border: 1px solid rgba(27,109,193,0.18);
+  box-shadow: 0 12px 28px rgba(13,59,102,0.10);
+}
+
+.wall-cta__copy h3 { margin: 0 0 0.25rem; }
+.wall-cta__copy p { margin: 0; color: var(--color-stone); }
+.wall-cta__actions { display: inline-flex; gap: .6rem; }
+
+.wall-composer {
+  padding: 0;
+  margin-bottom: 1.4rem;
+}
+
+.wall-composer__form {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(244,247,251,0.6);
+  border: 1px solid rgba(13,59,102,0.10);
+  box-shadow: 0 14px 34px rgba(13,59,102,0.12);
+}
+
+.wall-composer__controls { display: flex; gap: .6rem; }
+.wall-composer__select { width: 220px; }
+
+.wall-composer__textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.wall-composer__actions { display: flex; justify-content: flex-end; }
+
+.wall-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.wall-post {
+  border-radius: var(--radius-md);
+  background: #fff;
+  border: 1px solid rgba(13,59,102,0.10);
+  box-shadow: 0 16px 36px rgba(13,59,102,0.12);
+  padding: 1rem 1.1rem;
+}
+
+.wall-post__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  margin-bottom: .4rem;
+}
+
+.wall-post__id { display: inline-flex; align-items: center; gap: .7rem; }
+.wall-post__meta { display: grid; line-height: 1.2; }
+.wall-post__author { color: var(--color-royal); }
+.wall-post__time { font-size: .9rem; color: var(--color-muted); }
+
+.wall-post__content { color: var(--color-stone); margin: .25rem 0 .6rem; white-space: pre-wrap; }
+
+.wall-post__replies { margin-top: .4rem; }
+.wall-reply { padding: .7rem .9rem; border-left: 3px solid rgba(27,109,193,0.18); background: rgba(27,109,193,0.05); border-radius: 10px; }
+.wall-reply--first { border-left-color: rgba(27,109,193,0.35); background: rgba(27,109,193,0.08); }
+.wall-reply p { margin: .35rem 0 0; color: var(--color-royal); }
+.wall-reply-list { margin-top: .5rem; display: grid; gap: .5rem; }
+.wall-post__more { margin-top: .55rem; }
+
+.wall-reply-form { display: grid; gap: .6rem; margin-top: .75rem; }
+.wall-reply-form__actions { display: flex; justify-content: flex-end; }
+
+/* Small avatar ring for wall cards */
+.avatar-ring--sm { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(140deg, var(--color-crimson), var(--color-azure)); display: inline-grid; place-items: center; color: #fff; box-shadow: 0 6px 14px rgba(13,59,102,0.20); font-weight: 700; }
+.avatar-ring--sm > span { font-size: .95rem; }
