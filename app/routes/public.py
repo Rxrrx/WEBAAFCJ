@@ -53,6 +53,24 @@ async def read_home(
             .first()
         )
 
+    peace_messengers_category = (
+        db.query(models.Category)
+        .filter(models.Category.name.ilike(settings.peace_messengers_category_name))
+        .first()
+    )
+    peace_messengers_document = None
+    if peace_messengers_category:
+        peace_messengers_document = (
+            db.query(models.Document)
+            .options(
+                selectinload(models.Document.category),
+                selectinload(models.Document.subcategory),
+            )
+            .filter(models.Document.category_id == peace_messengers_category.id)
+            .order_by(models.Document.uploaded_at.desc())
+            .first()
+        )
+
     featured_categories = (
         db.query(models.Category)
         .options(selectinload(models.Category.subcategories))
@@ -94,6 +112,8 @@ async def read_home(
             sermon_category_name=settings.sermon_category_name,
             church_address=settings.church_address,
             mapbox_token=settings.mapbox_token,
+            peace_messengers_category=peace_messengers_category,
+            peace_messengers_document=peace_messengers_document,
             featured_categories=featured_category_cards,
         ),
     )

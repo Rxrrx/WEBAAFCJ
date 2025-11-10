@@ -52,6 +52,11 @@ class Settings:
             "SERMON_CATEGORY_NAME", "Sermones"
         )
     )
+    peace_messengers_category_name: str = field(
+        default_factory=lambda: os.environ.get(
+            "PEACE_MESSENGERS_CATEGORY_NAME", "Mensajeros de Paz"
+        )
+    )
     allowed_upload_types: List[str] = field(
         default_factory=lambda: [
             "application/pdf",

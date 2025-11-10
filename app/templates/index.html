@@ -230,6 +230,59 @@
 </section>
 {% endif %}
 
+{% if peace_messengers_category and peace_messengers_document %}
+<section class="module module--spotlight">
+  <header class="module__header">
+    <div>
+      <h2>{{ peace_messengers_category.name }}</h2>
+      <p>Material destacado de la categoría {{ peace_messengers_category.name }}.</p>
+    </div>
+    <a class="link-arrow" href="/library#category-{{ peace_messengers_category.id }}">
+      Ver categoría
+    </a>
+  </header>
+  <div class="spotlight-board">
+    <article class="document-card document-card--compact">
+      {%- set _ext = (peace_messengers_document.filename.split('.')[-1].upper() if '.' in peace_messengers_document.filename else (peace_messengers_document.content_type.split('/')[-1].upper() if '/' in peace_messengers_document.content_type else peace_messengers_document.content_type)) -%}
+      <div class="document-card__type" aria-hidden="true">
+        {{ _ext if _ext in ['PDF','PPT','PPTX','DOC','DOCX','TXT'] else _ext[:6] }}
+      </div>
+      <div class="document-card__body">
+        <h3 class="document-card__title">{{ peace_messengers_document.filename }}</h3>
+        <p class="document-card__meta">
+          {{ peace_messengers_document.content_type.split('/')[-1].upper() if '/' in peace_messengers_document.content_type else peace_messengers_document.content_type }}
+          · {{ peace_messengers_document.uploaded_at.strftime("%d/%m/%Y %H:%M") }}
+        </p>
+        {% if peace_messengers_document.category %}
+        <span class="badge">{{ peace_messengers_document.category.name }}</span>
+        {% endif %}
+        {% if peace_messengers_document.subcategory %}
+        <span class="badge badge--soft">{{ peace_messengers_document.subcategory.name }}</span>
+        {% endif %}
+      </div>
+      <div class="document-card__actions">
+        <a
+          class="button button--ghost"
+          href="/documents/{{ peace_messengers_document.id }}/download"
+          data-download-url="/documents/{{ peace_messengers_document.id }}/download"
+          data-filename="{{ peace_messengers_document.filename }}"
+        >
+          Descargar
+        </a>
+        <a
+          class="button button--outline"
+          href="{% if peace_messengers_document.content_type == 'application/pdf' %}/documents/{{ peace_messengers_document.id }}/view{% else %}/documents/{{ peace_messengers_document.id }}/download{% endif %}"
+          {% if peace_messengers_document.content_type == 'application/pdf' %}data-view-url="/documents/{{ peace_messengers_document.id }}/view"{% endif %}
+          data-filename="{{ peace_messengers_document.filename }}"
+        >
+          Abrir
+        </a>
+      </div>
+    </article>
+  </div>
+</section>
+{% endif %}
+
 <section class="module module--map">
   <header class="module__header">
     <div>
