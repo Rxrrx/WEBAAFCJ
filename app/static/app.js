@@ -3,7 +3,7 @@
   const VIEW_SELECTOR = "[data-view-url]";
   const LIBRARY_VIEW_SELECTOR = "[data-library-view-toggle]";
   const DELETE_SELECTOR =
-    "form[data-action='delete-doc'], form[data-action='delete-category'], form[data-action='delete-subcategory'], form[data-action='delete-post']";
+    "form[data-action='delete-doc'], form[data-action='delete-category'], form[data-action='delete-subcategory'], form[data-action='delete-post'], form[data-action='delete-reply']";
   const STORAGE_KEYS = {
     libraryView: "library:view",
   };
@@ -234,7 +234,8 @@
       form.addEventListener("submit", (event) => {
         const isCategory = form.dataset.action === "delete-category";
         const isSubcategory = form.dataset.action === "delete-subcategory";
-        const isPost = form.dataset.action === "delete-post";
+      const isPost = form.dataset.action === "delete-post";
+      const isReply = form.dataset.action === "delete-reply";
         const itemName =
           form.dataset.name || form.dataset.filename || "este elemento";
         const message =
@@ -245,6 +246,8 @@
             ? `Eliminar la subcategoria "${itemName}" y todos sus documentos?`
             : isPost
             ? `Eliminar la publicacion de manera permanente?`
+            : isReply
+            ? `Eliminar esta respuesta de manera permanente?`
             : `Eliminar "${itemName}" de manera permanente?`);
         if (!window.confirm(message)) {
           event.preventDefault();

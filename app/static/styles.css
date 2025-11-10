@@ -2771,15 +2771,16 @@ strong {
   background: #fff;
   border: 1px solid rgba(13,59,102,0.10);
   box-shadow: 0 18px 40px rgba(13,59,102,0.12);
-  padding: 1.15rem 1.25rem;
+  padding: 1.25rem 1.25rem 1.15rem;
+  position: relative;
 }
 
 .wall-post__head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: .8rem;
-  margin-bottom: .4rem;
+  margin-bottom: .35rem;
+  padding-right: 8.5rem;
 }
 
 .wall-post__id { display: inline-flex; align-items: center; gap: .7rem; }
@@ -2787,7 +2788,7 @@ strong {
 .wall-post__author { color: var(--color-royal); }
 .wall-post__time { font-size: .9rem; color: var(--color-muted); }
 
-.wall-post__actions { display: inline-flex; align-items: center; gap: .75rem; }
+.wall-post__actions { display: inline-flex; align-items: center; gap: .75rem; position: absolute; top: .85rem; right: 1rem; }
 
 .wall-post__content {
   color: var(--color-stone);
@@ -2807,6 +2808,15 @@ strong {
 
 .wall-reply-form { display: grid; gap: .6rem; margin-top: .75rem; }
 .wall-reply-form__actions { display: flex; justify-content: flex-end; }
+
+/* Delete button inside reply bubble */
+.wall-reply { position: relative; }
+.wall-reply__delete { position: absolute; top: .35rem; right: .5rem; }
+
+@media (max-width: 560px) {
+  .wall-post__head { padding-right: 0; }
+  .wall-post__actions { position: static; margin-left: auto; }
+}
 
 /* Small avatar ring for wall cards */
 .avatar-ring--sm { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(140deg, var(--color-crimson), var(--color-azure)); display: inline-grid; place-items: center; color: #fff; box-shadow: 0 6px 14px rgba(13,59,102,0.20); font-weight: 700; }

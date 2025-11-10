@@ -124,6 +124,11 @@
       <div class="wall-reply wall-reply--first">
         <strong>{{ replies[0].user.full_name }}</strong>
         <span class="wall-post__time">&middot; {{ replies[0].created_at.strftime('%d %b %Y, %H:%M') }}</span>
+        {% if current_user and (current_user.id == replies[0].user_id or current_user.is_superuser) %}
+        <form method="post" action="/muro/reply/{{ replies[0].id }}/delete" class="site-inline-form wall-reply__delete" data-action="delete-reply" data-name="respuesta">
+          <button type="submit" class="link-danger">Eliminar</button>
+        </form>
+        {% endif %}
         <p>{{ replies[0].content }}</p>
       </div>
       {% if replies|length > 1 %}
@@ -132,6 +137,11 @@
         <div class="wall-reply">
           <strong>{{ reply.user.full_name }}</strong>
           <span class="wall-post__time">&middot; {{ reply.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+          {% if current_user and (current_user.id == reply.user_id or current_user.is_superuser) %}
+          <form method="post" action="/muro/reply/{{ reply.id }}/delete" class="site-inline-form wall-reply__delete" data-action="delete-reply" data-name="respuesta">
+            <button type="submit" class="link-danger">Eliminar</button>
+          </form>
+          {% endif %}
           <p>{{ reply.content }}</p>
         </div>
         {% endfor %}

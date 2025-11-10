@@ -192,4 +192,29 @@ async def muro_delete_post(
     return redirect_response(request.url_for("muro_index"))
 
 
+@router.post("/muro/reply/{reply_id}/delete")
+async def muro_delete_reply(
+    request: Request,
+    reply_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user),
+):
+    """Eliminar una respuesta del muro.
+    Permite borrar solo al autor de la respuesta o al superusuario.
+    """
+    if current_user is None:
+        return _redirect_to_login(request)
+
+    reply = db.query(models.PostReply).filter(models.PostReply.id == reply_id).first()
+    if reply is None:
+        return redirect_response(request.url_for("muro_index"))
+
+    if (reply.user_id != current_user.id) and (not current_user.is_superuser):
+        return redirect_response(request.url_for("muro_index"))
+
+    db.delete(reply)
+    db.commit()
+    return redirect_response(request.url_for("muro_index"))
+
+
 __all__ = ["router", "muro_index"]
