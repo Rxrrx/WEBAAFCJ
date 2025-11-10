@@ -3,7 +3,7 @@
   const VIEW_SELECTOR = "[data-view-url]";
   const LIBRARY_VIEW_SELECTOR = "[data-library-view-toggle]";
   const DELETE_SELECTOR =
-    "form[data-action='delete-doc'], form[data-action='delete-category'], form[data-action='delete-subcategory']";
+    "form[data-action='delete-doc'], form[data-action='delete-category'], form[data-action='delete-subcategory'], form[data-action='delete-post']";
   const STORAGE_KEYS = {
     libraryView: "library:view",
   };
@@ -234,6 +234,7 @@
       form.addEventListener("submit", (event) => {
         const isCategory = form.dataset.action === "delete-category";
         const isSubcategory = form.dataset.action === "delete-subcategory";
+        const isPost = form.dataset.action === "delete-post";
         const itemName =
           form.dataset.name || form.dataset.filename || "este elemento";
         const message =
@@ -242,10 +243,39 @@
             ? `Eliminar la categoria "${itemName}" y todos sus documentos asociados?`
             : isSubcategory
             ? `Eliminar la subcategoria "${itemName}" y todos sus documentos?`
+            : isPost
+            ? `Eliminar la publicacion de manera permanente?`
             : `Eliminar "${itemName}" de manera permanente?`);
         if (!window.confirm(message)) {
           event.preventDefault();
         }
+      });
+    });
+  }
+
+  function initWallReplies(root = document) {
+    root.querySelectorAll("[data-toggle-replies]").forEach((button) => {
+      const card = button.closest("[data-post]");
+      if (!card) return;
+      const block = card.querySelector("[data-replies]");
+      if (!block) {
+        button.hidden = true;
+        return;
+      }
+      const extraReplies = block.querySelectorAll(".reply").length;
+      const total = 1 + extraReplies; // first reply is always visible
+      const updateLabel = () => {
+        const expanded = button.getAttribute("data-expanded") === "true";
+        button.textContent = expanded
+          ? "Ocultar respuestas"
+          : `Ver todas las respuestas (${total})`;
+      };
+      updateLabel();
+      button.addEventListener("click", () => {
+        const expanded = button.getAttribute("data-expanded") === "true";
+        block.hidden = expanded;
+        button.setAttribute("data-expanded", String(!expanded));
+        updateLabel();
       });
     });
   }
@@ -1426,5 +1456,6 @@
     initLibraryNavigator();
     initLogoMark();
     initMap();
+    initWallReplies();
   });
 })();

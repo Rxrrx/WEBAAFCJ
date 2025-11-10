@@ -87,3 +87,34 @@ class DocumentDownload(Base):
 
     user = relationship("User", back_populates="downloads")
     document = relationship("Document", back_populates="downloads")
+
+
+class Post(Base):
+    __tablename__ = "posts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    content = Column(String(4000), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User")
+    replies = relationship(
+        "PostReply",
+        back_populates="post",
+        cascade="all, delete-orphan",
+        order_by="PostReply.created_at.asc()",
+    )
+
+
+class PostReply(Base):
+    __tablename__ = "post_replies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    content = Column(String(4000), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    post = relationship("Post", back_populates="replies")
+    user = relationship("User")

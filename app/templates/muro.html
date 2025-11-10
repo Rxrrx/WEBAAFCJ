@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block surface_class %}surface-home{% endblock %}
+
+{% block masthead %}
+<section class="page-hero">
+  <div class="hero__legend">
+    <span class="hero__badge hero__badge--motto">Muro de la congregacion</span>
+    <h1>Comparte, pregunta y ora en comunidad</h1>
+    <p style="max-width: 72ch; text-align: center">
+      Este espacio esta pensado para que los hermanos publiquen
+      preguntas biblicas, peticiones de oracion, testimonios breves y avisos de servicio.
+      Todos pueden leer; para publicar o responder necesitas iniciar sesion.
+      Procuremos edificar con respeto, claridad y amor fraternal.
+    </p>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<div class="form-area" style="margin-bottom: 1.5rem">
+  {% if errors %}
+  <ul class="form-messages form-messages--error" role="alert">
+    {% for message in errors %}<li>{{ message }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if current_user %}
+  <form method="post" action="/muro/create" class="form-grid">
+    <div class="form-field">
+      <label class="form-label" for="post-content">Escribe tu mensaje</label>
+      <textarea
+        class="form-input"
+        id="post-content"
+        name="content"
+        rows="3"
+        maxlength="4000"
+        placeholder="Ej.: Paz de Cristo, quisiera pedir oracion por..."
+        required
+      >{{ (draft.content if draft else '') | default('') }}</textarea>
+      <small class="form-hint">Hasta 4000 caracteres. Evita datos sensibles.</small>
+    </div>
+    <div>
+      <button class="button button--primary" type="submit">Publicar</button>
+    </div>
+  </form>
+  {% else %}
+  <div class="callout" style="padding: 1rem; border-radius: 12px; background: rgba(27,109,193,0.08); border: 1px solid rgba(27,109,193,0.2)">
+    <p>
+      Para publicar o responder debes <a href="/login?next=/muro">iniciar sesion</a>.
+      Aun no tienes cuenta? <a href="/register">Registrate aqui</a>.
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+<ul class="document-feed" data-wall>
+  {% for post in posts %}
+  <li class="sermon-card" data-post>
+    <div class="sermon-card__head">
+      <div>
+        <strong>{{ post.user.full_name }}</strong>
+        <div class="sermon-card__date">{{ post.created_at.strftime('%d %b %Y, %H:%M') }}</div>
+      </div>
+      {% if current_user and (current_user.id == post.user_id or current_user.is_superuser) %}
+      <form method="post" action="/muro/post/{{ post.id }}/delete" class="site-inline-form" data-action="delete-post" data-name="publicacion">
+        <button type="submit" class="link-danger">Eliminar</button>
+      </form>
+      {% endif %}
+    </div>
+    <p class="sermon-card__lead">{{ post.content }}</p>
+
+    {% set replies = post.replies or [] %}
+    {% if replies|length > 0 %}
+    <div class="replies" data-replies-block>
+      <div class="reply" style="padding: 0.75rem 1rem; border-left: 3px solid rgba(27,109,193,0.35); background: rgba(27,109,193,0.06); border-radius: 8px;">
+        <strong>{{ replies[0].user.full_name }}</strong>
+        <span class="sermon-card__date"> &middot; {{ replies[0].created_at.strftime('%d %b %Y, %H:%M') }}</span>
+        <p style="margin: 0.4rem 0 0">{{ replies[0].content }}</p>
+      </div>
+
+      {% if replies|length > 1 %}
+      <div class="more-replies" data-replies hidden>
+        {% for reply in replies[1:] %}
+        <div class="reply" style="margin-top: 0.6rem; padding: 0.75rem 1rem; border-left: 3px solid rgba(27,109,193,0.18); background: rgba(27,109,193,0.04); border-radius: 8px;">
+          <strong>{{ reply.user.full_name }}</strong>
+          <span class="sermon-card__date"> &middot; {{ reply.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+          <p style="margin: 0.4rem 0 0">{{ reply.content }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="margin-top: 0.6rem;">
+        <button class="button button--soft" type="button" data-toggle-replies data-expanded="false">
+          Ver todas las respuestas ({{ replies|length }})
+        </button>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if current_user %}
+    <form method="post" action="/muro/post/{{ post.id }}/reply" class="form-grid" style="margin-top: 0.9rem">
+      <div class="form-field">
+        <label class="form-label" for="reply-{{ post.id }}">Agregar respuesta</label>
+        <textarea class="form-input" id="reply-{{ post.id }}" name="content" rows="2" maxlength="4000" placeholder="Escribe una respuesta..." required></textarea>
+      </div>
+      <div>
+        <button class="button button--outline" type="submit">Responder</button>
+      </div>
+    </form>
+    {% endif %}
+  </li>
+  {% else %}
+  <li class="sermon-card">
+    <p class="sermon-card__lead">Aun no hay publicaciones. Se el primero en escribir y animar a la iglesia.</p>
+  </li>
+  {% endfor %}
+</ul>
+
+{% endblock %}
+

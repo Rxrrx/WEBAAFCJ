@@ -4,7 +4,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.bootstrap import bootstrap_database
 from app.core.config import get_settings
-from app.routes import admin, auth, chat, documents, public
+from app.routes import admin, auth, chat, documents, public, muro
 
 settings = get_settings()
 bootstrap_database()
@@ -22,5 +22,6 @@ app.include_router(public.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(documents.router)
+app.include_router(muro.router)
 
 __all__ = ["app"]

@@ -59,6 +59,12 @@
           >
             Biblioteca
           </a>
+          <a
+            class="site-nav__link {{ 'is-active' if current_path.startswith('/muro') else '' }}"
+            href="/muro"
+          >
+            Muro
+          </a>
           {% if current_user %}
           {% if current_user.is_superuser %}
           <a
