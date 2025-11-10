@@ -28,11 +28,12 @@
   <form method="post" action="/muro/create" class="wall-composer__form">
     <div class="wall-composer__controls">
       <select class="form-input wall-composer__select" name="kind" aria-label="Tipo de publicacion">
-        <option value="" selected>Selecciona tipo</option>
-        <option value="pregunta">Pregunta</option>
-        <option value="oracion">Peticion de oracion</option>
-        <option value="anuncio">Anuncio</option>
-        <option value="testimonio">Testimonio</option>
+        {% set dk = (draft.kind if draft and draft.kind else (selected_kind or '')) %}
+        <option value="" {{ 'selected' if not dk else '' }}>Selecciona tipo</option>
+        <option value="pregunta" {{ 'selected' if dk=='pregunta' else '' }}>Pregunta</option>
+        <option value="oracion" {{ 'selected' if dk=='oracion' else '' }}>Peticion de oracion</option>
+        <option value="anuncio" {{ 'selected' if dk=='anuncio' else '' }}>Anuncio</option>
+        <option value="testimonio" {{ 'selected' if dk=='testimonio' else '' }}>Testimonio</option>
       </select>
     </div>
     <div class="wall-composer__field">
@@ -67,6 +68,24 @@
 
 <h2 class="section-title">Publicaciones recientes</h2>
 
+<nav class="wall-filter" aria-label="Filtro por tipo">
+  {% set kinds = [
+    ('', 'Todos'),
+    ('pregunta', 'Preguntas'),
+    ('oracion', 'Oracion'),
+    ('anuncio', 'Anuncios'),
+    ('testimonio', 'Testimonios')
+  ] %}
+  {% for k,label in kinds %}
+    {% if k %}
+      <a class="wall-filter__link {{ 'is-active' if selected_kind==k else '' }}" href="/muro?tipo={{ k }}">{{ label }}</a>
+    {% else %}
+      <a class="wall-filter__link {{ 'is-active' if not selected_kind else '' }}" href="/muro">{{ label }}</a>
+    {% endif %}
+  {% endfor %}
+  <span class="sr-only">Filtro activo: {{ selected_kind or 'todos' }}</span>
+</nav>
+
 <ul class="wall-feed" data-wall>
   {% for post in posts %}
   <li class="wall-post" data-post>
@@ -78,6 +97,16 @@
           <span class="wall-post__time">{{ post.created_at.strftime('%d %b %Y, %H:%M') }}</span>
         </div>
       </div>
+      {% set kind = (post.kind or '') %}
+      {% set kind_label = {
+        'pregunta': 'Pregunta',
+        'oracion': 'Peticion',
+        'anuncio': 'Anuncio',
+        'testimonio': 'Testimonio'
+      }[kind] if kind in ['pregunta','oracion','anuncio','testimonio'] else None %}
+      {% if kind_label %}
+      <span class="post-chip post-chip--{{ kind }}" aria-label="Tipo de publicacion">{{ kind_label }}</span>
+      {% endif %}
       {% if current_user and (current_user.id == post.user_id or current_user.is_superuser) %}
       <form method="post" action="/muro/post/{{ post.id }}/delete" class="site-inline-form" data-action="delete-post" data-name="publicacion">
         <button type="submit" class="link-danger">Eliminar</button>

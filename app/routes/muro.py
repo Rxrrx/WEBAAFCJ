@@ -19,7 +19,11 @@ router = APIRouter(tags=["muro"])
 
 
 def _redirect_to_login(request: Request) -> RedirectResponse:
-    return redirect_response(request.url_for("login_form") + f"?next={request.url.path}")
+    # Preserve current path and query when redirecting to login
+    path = request.url.path
+    query = request.url.query
+    next_target = path + (f"?{query}" if query else "")
+    return redirect_response(request.url_for("login_form") + f"?next={next_target}")
 
 
 @router.get("/muro")
@@ -28,16 +32,23 @@ async def muro_index(
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user),
     error: Optional[str] = None,
+    tipo: Optional[str] = None,
 ):
-    posts = (
+    kind_filter = (tipo or "").strip().lower() or None
+    if kind_filter and kind_filter not in ALLOWED_KINDS:
+        kind_filter = None
+
+    query = (
         db.query(models.Post)
         .options(
             selectinload(models.Post.user),
             selectinload(models.Post.replies).selectinload(models.PostReply.user),
         )
         .order_by(models.Post.created_at.desc())
-        .all()
     )
+    if kind_filter:
+        query = query.filter(models.Post.kind == kind_filter)
+    posts = query.all()
 
     return templates.TemplateResponse(
         "muro.html",
@@ -45,15 +56,20 @@ async def muro_index(
             request,
             current_user,
             posts=posts,
+            selected_kind=kind_filter,
             errors=[error] if error else None,
         ),
     )
+
+
+ALLOWED_KINDS = {"pregunta", "oracion", "anuncio", "testimonio"}
 
 
 @router.post("/muro/create")
 async def muro_create_post(
     request: Request,
     content: str = Form(...),
+    kind: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_user),
 ):
@@ -66,6 +82,10 @@ async def muro_create_post(
         errors.append("El mensaje es demasiado corto.")
     if len(value) > 4000:
         errors.append("El mensaje supera el limite de 4000 caracteres.")
+
+    kind_value = (kind or "").strip().lower()
+    if kind_value and kind_value not in ALLOWED_KINDS:
+        errors.append("Tipo de publicacion no valido.")
 
     ok, _ = moderate_text(value)
     if not ok:
@@ -88,11 +108,11 @@ async def muro_create_post(
                 current_user,
                 posts=posts,
                 errors=errors,
-                draft={"content": value},
+                draft={"content": value, "kind": kind_value},
             ),
         )
 
-    post = models.Post(user_id=current_user.id, content=value)
+    post = models.Post(user_id=current_user.id, content=value, kind=kind_value or None)
     db.add(post)
     db.commit()
     return redirect_response(request.url_for("muro_index"))
@@ -173,4 +193,3 @@ async def muro_delete_post(
 
 
 __all__ = ["router", "muro_index"]
-

@@ -2739,6 +2739,27 @@ strong {
   gap: 1rem;
 }
 
+.wall-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .2rem 0 1rem;
+}
+.wall-filter__link {
+  padding: .4rem .9rem;
+  border-radius: 999px;
+  background: rgba(27,109,193,0.08);
+  color: var(--color-royal);
+  font-weight: 700;
+  border: 1px solid rgba(27,109,193,0.20);
+}
+.wall-filter__link.is-active {
+  background: linear-gradient(120deg, var(--color-azure), var(--color-azure-light));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 10px 20px rgba(27,109,193,0.25);
+}
+
 .wall-post {
   border-radius: var(--radius-md);
   background: #fff;
@@ -2775,3 +2796,18 @@ strong {
 /* Small avatar ring for wall cards */
 .avatar-ring--sm { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(140deg, var(--color-crimson), var(--color-azure)); display: inline-grid; place-items: center; color: #fff; box-shadow: 0 6px 14px rgba(13,59,102,0.20); font-weight: 700; }
 .avatar-ring--sm > span { font-size: .95rem; }
+
+/* Kind chips */
+.post-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.post-chip--pregunta { background: rgba(27,109,193,0.12); color: var(--color-royal); border: 1px solid rgba(27,109,193,0.25); }
+.post-chip--oracion { background: rgba(27,109,193,0.10); color: var(--color-royal-dark); border: 1px solid rgba(27,109,193,0.22); }
+.post-chip--anuncio { background: rgba(193,18,31,0.14); color: var(--color-crimson); border: 1px solid rgba(193,18,31,0.35); }
+.post-chip--testimonio { background: rgba(13,59,102,0.08); color: var(--color-royal); border: 1px solid rgba(13,59,102,0.18); }

@@ -82,6 +82,22 @@ def _ensure_table_columns() -> None:
                     "ALTER TABLE subcategories "
                     "ADD COLUMN display_order INTEGER DEFAULT 0 NOT NULL"
                 )
+            # Posts auxiliary columns
+            try:
+                post_columns = [
+                    row[1]
+                    for row in connection.exec_driver_sql(
+                        "PRAGMA table_info(posts)"
+                    )
+                ]
+                if "kind" not in post_columns:
+                    connection.exec_driver_sql(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN kind VARCHAR(32)"
+                    )
+            except Exception:
+                # Table may not exist yet on first boot; Base.create_all will create it.
+                pass
         else:
             connection.exec_driver_sql(
                 "ALTER TABLE documents "
@@ -119,6 +135,14 @@ def _ensure_table_columns() -> None:
                 "ALTER TABLE documents "
                 "ADD COLUMN IF NOT EXISTS display_order INTEGER"
             )
+            # Posts auxiliary columns for non-sqlite
+            try:
+                connection.exec_driver_sql(
+                    "ALTER TABLE posts "
+                    "ADD COLUMN IF NOT EXISTS kind VARCHAR(32)"
+                )
+            except Exception:
+                pass
 
         # Normaliza valores de orden cuando el campo es nuevo o está sin asignar.
         connection.exec_driver_sql(
