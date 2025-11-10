@@ -2,6 +2,11 @@ import re
 import unicodedata
 from typing import Optional, Tuple
 
+from fastapi import HTTPException
+
+from app.core.config import get_settings
+from .gemini import get_gemini_reply
+
 
 _LEETSPEAK = str.maketrans(
     {
@@ -66,31 +71,80 @@ _BANNED_TERMS = {
 }
 
 
-def moderate_text(text: str) -> Tuple[bool, Optional[str]]:
-    """
-    Returns (ok, offending_term). ok=False when content should be rejected.
-    Applies simple normalization to catch common obfuscations.
-    """
-    if not text:
-        return False, None
+def _regex_for_term(term: str) -> re.Pattern:
+    # Allow very small obfuscations like p.u.t.a or p u t a
+    # up to 2 non-letters between letters, and anchor as a word
+    pieces = [re.escape(ch) for ch in term]
+    pattern = r"\b" + r"[\W_]{0,2}".join(pieces) + r"\b"
+    return re.compile(pattern, re.IGNORECASE)
 
+
+_TERM_PATTERNS = {term: _regex_for_term(term) for term in _BANNED_TERMS}
+
+
+def _basic_screen(text: str) -> Tuple[bool, Optional[str]]:
     normalized = _normalize(text)
 
-    # Check word by word against banned list
-    tokens = normalized.split()
-    for token in tokens:
+    # Fast path: token match
+    for token in normalized.split():
         if token in _BANNED_TERMS:
             return False, token
 
-    # Also detect repeated-letter obfuscations like p.u.t.a
-    squashed = normalized.replace(" ", "")
-    for term in _BANNED_TERMS:
-        pattern = ".*".join(map(re.escape, term))
-        if re.search(pattern, squashed):
+    # Obfuscations with minimal separators
+    for term, pattern in _TERM_PATTERNS.items():
+        if pattern.search(normalized):
             return False, term
 
     return True, None
 
 
-__all__ = ["moderate_text"]
+def _ai_screen(text: str) -> Tuple[Optional[bool], Optional[str]]:
+    """Try AI moderation via Gemini. Returns (decision, reason) where
+    decision is True allow, False block, or None when unavailable/error.
+    """
+    settings = get_settings()
+    if not settings.gemini_api_key:
+        return None, None
 
+    system = (
+        "Eres un moderador para una iglesia cristiana evangélica. "
+        "Evalúa si el siguiente texto contiene insultos, groserías u ofensas. "
+        "Responde solo en una línea con 'ALLOW' si se puede publicar sin problema, "
+        "o 'BLOCK: <motivo breve>' si debe rechazarse. No hagas otras aclaraciones."
+    )
+    try:
+        reply = get_gemini_reply(system, text, history=())
+    except HTTPException:
+        return None, None
+    except Exception:
+        return None, None
+
+    normalized = reply.strip().upper()
+    if normalized.startswith("ALLOW"):
+        return True, None
+    if normalized.startswith("BLOCK") or "RECHAZ" in normalized or "BLOQUE" in normalized:
+        # Extract brief reason if present
+        reason = reply.split(":", 1)[1].strip() if ":" in reply else None
+        return False, reason or None
+    # If unclear, don't block on AI
+    return None, None
+
+
+def moderate_text(text: str) -> Tuple[bool, Optional[str]]:
+    """Returns (ok, reason_or_term). Prefers AI when available, and uses a
+    safer basic screen to avoid falsos positivos como el mensaje de bienvenida.
+    """
+    if not text:
+        return False, None
+
+    ai_decision, ai_reason = _ai_screen(text)
+    if ai_decision is True:
+        return True, None
+    if ai_decision is False:
+        return False, ai_reason or "Contenido no permitido"
+
+    # Fallback or complement with basic screen
+    return _basic_screen(text)
+
+
+__all__ = ["moderate_text"]
